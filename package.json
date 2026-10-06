@@ -1,0 +1,34 @@
+{
+  "name": "fightendo",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Offline app that turns endometriosis symptoms into well-referenced letters to health insurers. No backend, no tracking.",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "scripts": {
+    "start": "node serve.mjs",
+    "sync": "node tools/sync.mjs",
+    "check": "node tools/sync.mjs --check && node tools/validate.mjs && node tools/stress.mjs",
+    "test": "node tools/selftest.mjs",
+    "new": "node tools/new.mjs",
+    "build:web": "node tools/build-web.mjs",
+    "native:sync": "node tools/build-web.mjs && npx cap sync",
+    "assets": "node tools/render-assets.mjs",
+    "screenshots": "node tools/screenshots.mjs",
+    "stress": "node tools/stress.mjs",
+    "eval": "node tools/eval.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.2",
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/filesystem": "^8.1.3",
+    "@capacitor/ios": "^8.5.2",
+    "@capacitor/share": "^8.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}

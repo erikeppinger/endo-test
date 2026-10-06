@@ -1,0 +1,30 @@
+{
+  "name": "FightEndo",
+  "short_name": "FightEndo",
+  "description": "Endometriose-Beschwerden dokumentieren und einen belegten Brief an die Krankenkasse schreiben – komplett offline.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fbf9f4",
+  "theme_color": "#f5c518",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-192.webp",
+      "sizes": "192x192",
+      "type": "image/webp",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any"
+    }
+  ]
+}

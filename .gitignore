@@ -1,0 +1,15 @@
+# never commit personal data exports
+fightendo-sicherung-*.json
+*.txt
+!LICENSE
+node_modules/
+.DS_Store
+Thumbs.db
+
+# build output
+www/
+android/app/release/
+*.apk
+*.aab
+*.keystore
+*.jks

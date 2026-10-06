@@ -1,0 +1,23 @@
+{
+  "settings": { "jurisdiction": "de", "locale": "de" },
+  "person": {
+    "name": "Alex Beispiel", "street": "Musterweg 1", "zipCity": "10115 Berlin", "birthdate": "1995-04-12",
+    "insuranceNumber": "A123456789", "insurer": "Beispiel-Kasse", "insurerStreet": "Kassenplatz 2", "insurerZipCity": "10117 Berlin"
+  },
+  "symptoms": {
+    "checked": { "dysmenorrhea": true, "dyschezia": true, "dyspareunia": true, "fatigue": true, "infertility": true },
+    "dysmenorrheaNrs": "9", "dailyImpact": true, "onsetYear": "2014", "missedDays": "3", "emergencyVisits": "2",
+    "painkillers": "Ibuprofen 800", "painkillerEffect": "partial", "hormones": "Dienogest", "hormoneEffect": "side",
+    "familyHistory": true, "notes": "NOTES-MARKER"
+  },
+  "diary": [
+    { "id": "d1", "date": "2026-08-01", "pain": "8", "bleeding": "heavy", "missed": true, "notes": "" },
+    { "id": "d2", "date": "2026-08-02", "pain": "6", "bleeding": "medium", "missed": false, "notes": "" }
+  ],
+  "encounters": [
+    { "id": "e1", "date": "2025-03-10", "who": "Praxis Beispiel", "specialty": "Gynäkologie", "said": "Das ist psychisch.", "refused": "Überweisung", "verbatim": true, "witness": "" }
+  ],
+  "decisions": [
+    { "id": "k1", "date": "2026-01-27", "ref": "AZ-1", "what": "MRT des Beckens", "reason": "Nicht notwendig.", "status": "open" }
+  ]
+}

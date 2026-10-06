@@ -1,0 +1,24 @@
+name: Legal or medical correction
+description: Something in a letter or source is wrong, outdated or overstated
+labels: [correction]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Country and letter / source
+      placeholder: e.g. Germany – Widerspruch – § 84 SGG
+    validations:
+      required: true
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: correct
+    attributes:
+      label: What is correct – with source
+      description: Link to the law, court decision or guideline
+    validations:
+      required: true

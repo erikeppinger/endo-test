@@ -1,0 +1,66 @@
+# Builds the iPhone/iPad app on a GitHub macOS runner – no Mac needed locally.
+#   Every push:  compile for the iOS Simulator (proves the project builds, no Apple account needed).
+#   Tags v*:     archive, sign and upload to TestFlight / App Store Connect – needs the secrets below.
+#
+# Secrets (requires a paid Apple Developer Program membership):
+#   APPLE_TEAM_ID                  10-character team id (developer.apple.com → Membership)
+#   ASC_KEY_ID, ASC_ISSUER_ID      App Store Connect API key (Users and Access → Integrations → Keys, role "App Manager")
+#   ASC_KEY_P8_BASE64              base64 of the downloaded AuthKey_XXXX.p8
+# Signing certificates and profiles are created automatically by Xcode ("cloud-managed signing").
+name: iOS
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run check
+      - name: Copy web app into the native project
+        run: node tools/build-web.mjs && npx cap sync ios
+
+      - name: Build for iOS Simulator (unsigned)
+        run: |
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO build
+
+      - name: Archive, sign and upload to App Store Connect (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+        run: |
+          KEY_PATH="$RUNNER_TEMP/AuthKey_$KEY_ID.p8"
+          echo "${{ secrets.ASC_KEY_P8_BASE64 }}" | base64 -d > "$KEY_PATH"
+          AUTH="-allowProvisioningUpdates -authenticationKeyPath $KEY_PATH -authenticationKeyID $KEY_ID -authenticationKeyIssuerID $ISSUER_ID"
+          VERSION="${GITHUB_REF_NAME#v}"
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/FightEndo.xcarchive" \
+            DEVELOPMENT_TEAM="$TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            MARKETING_VERSION="$VERSION" CURRENT_PROJECT_VERSION="${{ github.run_number }}" \
+            $AUTH archive
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM_ID</string>
+            <key>signingStyle</key><string>automatic</string>
+          </dict></plist>
+          EOF
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/FightEndo.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" -exportPath "$RUNNER_TEMP/export" $AUTH

@@ -1,0 +1,35 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- Store screenshots: loads the real app with demo data in a full-size frame.
+     ?view=letter&lang=de&scroll=.letter-out  (used by tools/screenshots.mjs, never shipped) -->
+<style>html,body{margin:0;height:100%;overflow:hidden}iframe{border:0;width:100%;height:100%;display:block}</style>
+</head><body>
+<script>
+const q = new URLSearchParams(location.search);
+const lang = q.get('lang') || 'de';
+const de = lang === 'de';
+const state = {
+  settings: { jurisdiction: 'de', locale: lang },
+  person: { name: 'Maria Muster', street: 'Musterweg 1', zipCity: '10115 Berlin', birthdate: '1996-04-12', insuranceNumber: 'A123456789', insurer: 'Beispiel-Krankenkasse', insurerStreet: 'Kassenplatz 2', insurerZipCity: '10117 Berlin' },
+  symptoms: { checked: { dysmenorrhea: true, dyschezia: true, dyspareunia: true, fatigue: true, bowelCyclic: true }, dysmenorrheaNrs: '9', dailyImpact: true, onsetYear: '2013', missedDays: '3', emergencyVisits: '2', painkillers: 'Ibuprofen 800', painkillerEffect: 'partial', hormones: 'Dienogest', hormoneEffect: 'side', familyHistory: false, notes: '' },
+  diary: [['2026-09-01', 9, 'heavy', true], ['2026-09-02', 8, 'heavy', true], ['2026-09-03', 6, 'medium', false], ['2026-09-04', 4, 'light', false], ['2026-09-12', 5, 'none', false]]
+    .map((r, i) => ({ id: 'd' + i, date: r[0], pain: String(r[1]), bleeding: r[2], missed: r[3], notes: '' })),
+  encounters: [
+    { id: 'e1', date: '2019-05-14', who: 'Praxis A', specialty: 'Gynäkologie', said: 'Regelschmerzen sind normal, da müssen Sie durch.', refused: 'Ultraschall', verbatim: true, witness: '' },
+    { id: 'e2', date: '2024-11-03', who: 'Praxis B', specialty: 'Allgemeinmedizin', said: 'Das ist bestimmt psychisch.', refused: 'Überweisung ins Endometriosezentrum', verbatim: true, witness: 'Mutter' }
+  ],
+  decisions: [{ id: 'k1', date: '2026-09-15', ref: 'AZ 4711', what: 'MRT des Beckens', reason: 'Medizinisch nicht notwendig.', status: 'open' }],
+  letter: { type: q.get('letter') || 'kk-antrag', options: {}, fields: {}, extra: {}, texts: {}, generated: {} }
+};
+localStorage.setItem('fightendo.v1', JSON.stringify(state));
+const f = document.createElement('iframe');
+f.src = '../index.html#' + (q.get('view') || 'start');
+f.onload = () => setTimeout(() => {
+  const sel = q.get('scroll');
+  const el = sel && f.contentDocument.querySelector(sel);
+  if (el) el.scrollIntoView({ block: 'start' });
+  if (sel && el) f.contentWindow.scrollBy(0, -110);
+}, 300);
+document.body.appendChild(f);
+</script>
+</body></html>

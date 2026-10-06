@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<title>FightEndo – Social Slides</title>
+<!-- 1080×1350 (Instagram/LinkedIn portrait). Open with ?s=3 to show one slide only (used for PNG export). -->
+<style>
+  :root { --ink: #1d1a2b; --paper: #fbf9f4; --y: #f5c518; --muted: #b9b3c9; }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: #444; font-family: "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; }
+  .slide {
+    width: 1080px; height: 1350px; position: relative; overflow: hidden;
+    background: var(--ink); color: var(--paper); padding: 110px 96px; margin: 0 auto 40px;
+    display: flex; flex-direction: column; justify-content: center;
+  }
+  .slide.light { background: var(--y); color: var(--ink); }
+  body.single { background: none; }
+  body.single .slide { margin: 0; }
+  .brand { position: absolute; left: 96px; bottom: 72px; font-size: 34px; letter-spacing: -.01em; display: flex; align-items: center; gap: 14px; }
+  .brand b { font-weight: 800; }
+  .brand svg { width: 46px; height: 46px; }
+  .num { position: absolute; right: 96px; bottom: 76px; font-size: 28px; opacity: .6; font-variant-numeric: tabular-nums; }
+  .kicker { font-size: 32px; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; color: var(--y); margin-bottom: 36px; }
+  .light .kicker { color: var(--ink); opacity: .7; }
+  h1 { font-size: 118px; line-height: 1.02; letter-spacing: -.035em; font-weight: 800; }
+  h2 { font-size: 84px; line-height: 1.06; letter-spacing: -.03em; font-weight: 800; }
+  p.big { font-size: 48px; line-height: 1.3; margin-top: 44px; }
+  p.small { font-size: 30px; line-height: 1.4; margin-top: 40px; color: var(--muted); }
+  .light p.small { color: var(--ink); opacity: .75; }
+  .y { color: var(--y); }
+  .strike { text-decoration: line-through; text-decoration-thickness: 10px; text-decoration-color: var(--y); }
+  .bar { width: 140px; height: 16px; background: var(--y); border-radius: 8px; margin: 48px 0 0; }
+  .stat { display: flex; flex-direction: column; gap: 8px; margin: 22px 0 30px; }
+  .stat b { font-size: 150px; font-weight: 800; color: var(--y); letter-spacing: -.04em; line-height: 1; }
+  .stat span { font-size: 42px; line-height: 1.25; }
+  .src { position: absolute; left: 96px; right: 96px; bottom: 150px; font-size: 22px; color: var(--muted); }
+  ol.steps { list-style: none; padding: 0; margin-top: 56px; counter-reset: s; }
+  ol.steps li { counter-increment: s; font-size: 50px; line-height: 1.25; margin: 0 0 44px; padding-left: 110px; position: relative; }
+  ol.steps li::before { content: counter(s); position: absolute; left: 0; top: -6px; width: 76px; height: 76px; border-radius: 50%; background: var(--y); color: var(--ink); font-weight: 800; font-size: 44px; display: grid; place-items: center; }
+  ul.checks { list-style: none; padding: 0; margin-top: 56px; }
+  ul.checks li { font-size: 62px; font-weight: 700; margin: 0 0 22px; }
+  ul.checks li::before { content: "✕ "; color: var(--y); }
+  .flags { font-size: 56px; margin-top: 48px; line-height: 1.5; font-weight: 700; }
+  .cta { align-self: flex-start; margin-top: 56px; background: var(--y); color: var(--ink); font-size: 44px; font-weight: 800; padding: 22px 40px; border-radius: 999px; }
+  .light ol.steps li::before { background: var(--ink); color: var(--y); }
+  .light .cta { background: var(--ink); color: var(--y); }
+</style>
+</head>
+<body>
+
+<template id="brand">
+  <div class="brand"><svg viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="#1d1a2b"/><path d="M32 10c-7 0-12 5-12 12 0 6 4 11 8 17L18 54h8l6-9 6 9h8L36 39c4-6 8-11 8-17 0-7-5-12-12-12zm0 7c3 0 5 2 5 5 0 3-2 7-5 11-3-4-5-8-5-11 0-3 2-5 5-5z" fill="#f5c518"/></svg><span><b>Fight</b>Endo</span></div>
+</template>
+
+<!-- 1 -->
+<section class="slide">
+  <p class="kicker">Endometriose</p>
+  <h1><span class="strike">„Regel&shy;schmerzen sind normal.“</span></h1>
+  <p class="big">Nein. Schmerzen, die dich umhauen, sind ein <span class="y">Symptom</span> – keine Charakterschwäche.</p>
+</section>
+
+<!-- 2 -->
+<section class="slide">
+  <p class="kicker">Die Zahlen</p>
+  <div class="stat"><b>~10&nbsp;%</b><span>aller Frauen und Mädchen im gebärfähigen Alter haben Endometriose.</span></div>
+  <div class="stat"><b>Jahre</b><span>dauert es im Schnitt bis zur Diagnose – oft nach vielen Arztbesuchen.</span></div>
+  <p class="big">„Stell dich nicht so an“ ist <span class="y">keine Diagnose.</span></p>
+  <p class="src">Quellen: WHO-Faktenblatt Endometriose · Hudelist et al., Hum Reprod 2012 · Zondervan et al., NEJM 2020</p>
+</section>
+
+<!-- 3 -->
+<section class="slide light">
+  <h2>Aus Frust wird ein Brief, den die Kasse beantworten muss.</h2>
+  <ol class="steps">
+    <li>Beschwerden erfassen – nach internationalen Leitlinien</li>
+    <li>Sprüche &amp; Ablehnungen dokumentieren – wörtlich</li>
+    <li>Brief an Krankenkasse oder Praxis – belegt mit Gesetzen, Grundrechten, Studien</li>
+  </ol>
+</section>
+
+<!-- 4 -->
+<section class="slide">
+  <p class="kicker">Deine Daten gehören dir</p>
+  <h2>Alles bleibt auf deinem Handy.</h2>
+  <ul class="checks">
+    <li>Keine Cloud</li>
+    <li>Kein Konto</li>
+    <li>Keine Werbung</li>
+    <li>Kein Tracking</li>
+  </ul>
+  <p class="small">Die App baut technisch keine einzige Netzwerkverbindung auf. Der Code ist offen – jede*r kann es prüfen.</p>
+</section>
+
+<!-- 5 -->
+<section class="slide">
+  <p class="kicker">Unsere Haltung zu KI</p>
+  <h2>KI soll uns das Leben <span class="y">leichter</span> machen.</h2>
+  <p class="big">Nicht Menschen ausziehen.<br>Nicht Identitäten missbrauchen.</p>
+  <p class="small">FightEndo ist mit KI-Unterstützung entstanden – als Werkzeug für Betroffene, nicht gegen sie.</p>
+  <div class="bar"></div>
+</section>
+
+<!-- 6 -->
+<section class="slide light">
+  <p class="kicker">Der Plan</p>
+  <h1>Wir gehen dem System so lange auf den Sack, bis es die Probleme anerkennt.</h1>
+  <p class="small">Sachlich. Belegt. Schriftlich. Immer wieder.</p>
+</section>
+
+<!-- 7 -->
+<section class="slide" lang="en">
+  <p class="kicker">Open source · join us</p>
+  <h2>Germany is just the beginning.</h2>
+  <p class="flags">Austria? Switzerland? France? Italy? Poland? UK? Your country?</p>
+  <p class="big">Know your country’s patient rights and health law? Add them – every country is its own file.</p>
+  <span class="cta">Link in bio → GitHub</span>
+  <p class="small">Not a diagnosis, not legal advice. In an emergency, call your local emergency number.</p>
+</section>
+
+<script>
+  const slides = [...document.querySelectorAll('.slide')];
+  const brand = document.getElementById('brand');
+  slides.forEach((s, i) => {
+    s.appendChild(brand.content.cloneNode(true));
+    const n = document.createElement('div');
+    n.className = 'num'; n.textContent = (i + 1) + ' / ' + slides.length;
+    s.appendChild(n);
+  });
+  const only = Number(new URLSearchParams(location.search).get('s'));
+  if (only) {
+    document.body.classList.add('single');
+    slides.forEach((s, i) => { if (i + 1 !== only) s.remove(); });
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+name: Add my country
+description: Offer or request support for a country / health system
+labels: [country, help wanted]
+body:
+  - type: input
+    id: country
+    attributes:
+      label: Country and health system
+      placeholder: e.g. Austria – ÖGK (public health insurance)
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: How can you help?
+      options:
+        - I will write the country file myself
+        - I can review legal content (legal background)
+        - I can translate
+        - I only know the problem – please find someone
+    validations:
+      required: true
+  - type: textarea
+    id: letters
+    attributes:
+      label: Which letters are needed?
+      description: e.g. request to insurer, appeal against a refusal, request for medical records, complaint
+  - type: textarea
+    id: law
+    attributes:
+      label: Legal basis you know of
+      description: Laws, patient rights, deadlines for appeals, court decisions – with links to official sources if possible
+  - type: textarea
+    id: sending
+    attributes:
+      label: How must letters be sent to count legally?
+      description: Post, fax, online portal, e-mail, signature requirements

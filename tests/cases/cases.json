@@ -1,0 +1,315 @@
+{
+  "_about": "Evaluation cases for the letter generator. Composite, anonymised scenarios modelled on publicly reported patterns (news reports, petitions, patient-organisation pages) – no real person's data, no quotes from posts. Each case lists the letter to generate and checks the output must pass. Run: npm run eval",
+  "cases": [
+    {
+      "id": "delay-20-years",
+      "title": "20 Jahre abgetan, jetzt Antrag an die Kasse",
+      "pattern": "Diagnoseverzögerung über Jahrzehnte, wiederholt als normal abgetan (vgl. Medienberichte über ~20 Jahre bis zur Diagnose).",
+      "sources": [
+        "https://www.aol.com/woman-33-says-took-20-200000999.html",
+        "https://www.pressreader.com/ireland/irish-daily-mail/20220509/281835762287117"
+      ],
+      "letter": "kk-antrag",
+      "state": {
+        "person": {
+          "name": "Fall A",
+          "street": "Weg 1",
+          "zipCity": "50667 Köln",
+          "insurer": "Beispiel-BKK",
+          "insurerStreet": "Str. 2",
+          "insurerZipCity": "50668 Köln",
+          "insuranceNumber": "B000000001"
+        },
+        "symptoms": {
+          "checked": {
+            "dysmenorrhea": true,
+            "chronicPelvicPain": true,
+            "dyschezia": true,
+            "fatigue": true,
+            "mentalHealth": true
+          },
+          "dysmenorrheaNrs": "10",
+          "dailyImpact": true,
+          "onsetYear": "2006",
+          "missedDays": "4",
+          "emergencyVisits": "3",
+          "painkillers": "Ibuprofen, Metamizol",
+          "painkillerEffect": "none"
+        },
+        "encounters": [
+          {
+            "id": "e1",
+            "date": "2012-03-01",
+            "who": "Praxis 1",
+            "specialty": "Gynäkologie",
+            "said": "Das ist normal, das haben viele.",
+            "verbatim": true
+          },
+          {
+            "id": "e2",
+            "date": "2018-06-01",
+            "who": "Praxis 2",
+            "specialty": "Allgemeinmedizin",
+            "said": "Stress, versuchen Sie Entspannung.",
+            "verbatim": true
+          },
+          {
+            "id": "e3",
+            "date": "2025-10-01",
+            "who": "Notaufnahme",
+            "specialty": "",
+            "said": "Kein Befund, gehen Sie zum Frauenarzt.",
+            "refused": "Bildgebung",
+            "verbatim": true
+          }
+        ]
+      },
+      "expect": {
+        "contains": [
+          "seit 2006",
+          "rund 20 Jahren",
+          "„Das ist normal, das haben viele.“",
+          "Endometriosezentren",
+          "§ 27 Abs. 1 SGB V",
+          "NICE NG73",
+          "Hoffmann & Tarzian",
+          "3-mal eine Notaufnahme"
+        ],
+        "notContains": [
+          "[Versichertennummer]",
+          "[Name der Krankenkasse]"
+        ]
+      }
+    },
+    {
+      "id": "hormones-dienogest",
+      "title": "Widerspruch: Alternative Hormontherapie abgelehnt",
+      "pattern": "Kasse übernimmt nur Dienogest; die Patientin verträgt es nicht, eine alternative Hormontherapie wird abgelehnt (Thema einer öffentlichen Petition).",
+      "sources": [
+        "https://www.openpetition.de/petition/online/kostenuebernahme-von-hormonen-bei-endometriose-durch-die-krankenkasse"
+      ],
+      "letter": "widerspruch",
+      "fields": {
+        "decision": "k1",
+        "claim": "Kostenübernahme einer alternativen Hormontherapie (Kombinationspräparat im Langzyklus)",
+        "kind": "drug"
+      },
+      "state": {
+        "person": {
+          "name": "Fall B",
+          "street": "Weg 2",
+          "zipCity": "80331 München",
+          "insurer": "Beispiel-AOK",
+          "insurerStreet": "Str. 3",
+          "insurerZipCity": "80332 München",
+          "insuranceNumber": "B000000002",
+          "birthdate": "1998-05-05"
+        },
+        "symptoms": {
+          "checked": {
+            "dysmenorrhea": true,
+            "dyspareunia": true,
+            "fatigue": true
+          },
+          "dysmenorrheaNrs": "8",
+          "dailyImpact": true,
+          "onsetYear": "2012",
+          "hormones": "Dienogest 2 mg",
+          "hormoneEffect": "side",
+          "diagnosis": "diagnosed",
+          "diagnosisYear": "2021"
+        },
+        "decisions": [
+          {
+            "id": "k1",
+            "date": "2026-09-10",
+            "ref": "HV-4711",
+            "what": "Kombinationspräparat zur Endometriose-Therapie",
+            "reason": "Kontrazeptiva sind ab dem 22. Lebensjahr keine Kassenleistung.",
+            "status": "open"
+          }
+        ]
+      },
+      "expect": {
+        "contains": [
+          "Widerspruch gegen Ihren Bescheid vom 10.09.2026",
+          "HV-4711",
+          "§ 31",
+          "B 1 KR 37/00 R",
+          "nicht der Empfängnisverhütung",
+          "abgebrochen wegen Nebenwirkungen",
+          "im Jahr 2021 eine Endometriose diagnostiziert"
+        ],
+        "notContains": [
+          "leitliniengerechten Abklärung",
+          "um eine Krankheit zu erkennen (§ 27",
+          "ohne dass eine gezielte Abklärung",
+          "frühzeitige, gezielte Diagnostik"
+        ]
+      }
+    },
+    {
+      "id": "rehab-refused",
+      "title": "Widerspruch: Reha abgelehnt",
+      "pattern": "Medizinische Reha in einer Endometriose-Reha-Klinik abgelehnt; Zuständigkeit Kasse vs. Rentenversicherung unklar.",
+      "sources": [
+        "https://www.endometriose-doc.de/alltag/reha-bei-endometriose-wer-anspruch-hat-wann-sie-bewilligt-wird-1450107.html"
+      ],
+      "letter": "widerspruch",
+      "fields": {
+        "decision": "k1",
+        "claim": "stationäre medizinische Rehabilitation in einer auf Endometriose spezialisierten Klinik",
+        "kind": "rehab"
+      },
+      "state": {
+        "person": {
+          "name": "Fall C",
+          "street": "Weg 3",
+          "zipCity": "20095 Hamburg",
+          "insurer": "Beispiel-Kasse",
+          "insurerStreet": "Str. 4",
+          "insurerZipCity": "20096 Hamburg",
+          "insuranceNumber": "B000000003"
+        },
+        "symptoms": {
+          "checked": {
+            "dysmenorrhea": true,
+            "chronicPelvicPain": true,
+            "fatigue": true,
+            "mentalHealth": true
+          },
+          "dailyImpact": true,
+          "onsetYear": "2015",
+          "missedDays": "6"
+        },
+        "decisions": [
+          {
+            "id": "k1",
+            "date": "2026-09-01",
+            "ref": "R-123",
+            "what": "Stationäre Reha",
+            "reason": "Ambulante Maßnahmen ausreichend.",
+            "status": "open"
+          }
+        ]
+      },
+      "expect": {
+        "contains": [
+          "§ 40 SGB V",
+          "§ 15 SGB VI",
+          "§ 14 SGB IX",
+          "R-123"
+        ],
+        "notContains": [
+          "leitliniengerechten Abklärung",
+          "um eine Krankheit zu erkennen (§ 27"
+        ]
+      }
+    },
+    {
+      "id": "mri-refused",
+      "title": "Widerspruch: MRT abgelehnt",
+      "pattern": "Bildgebende Diagnostik als nicht notwendig abgelehnt.",
+      "sources": [],
+      "letter": "widerspruch",
+      "fields": {
+        "decision": "k1",
+        "kind": "diagnostics"
+      },
+      "state": {
+        "person": {
+          "name": "Fall D",
+          "street": "Weg 4",
+          "zipCity": "01067 Dresden",
+          "insurer": "Beispiel-IKK",
+          "insurerStreet": "Str. 5",
+          "insurerZipCity": "01068 Dresden",
+          "insuranceNumber": "B000000004"
+        },
+        "symptoms": {
+          "checked": {
+            "dysmenorrhea": true,
+            "dyschezia": true,
+            "hematuria": true
+          },
+          "dysmenorrheaNrs": "9",
+          "onsetYear": "2019"
+        },
+        "decisions": [
+          {
+            "id": "k1",
+            "date": "2026-08-20",
+            "ref": "MRT-9",
+            "what": "MRT des Beckens",
+            "reason": "Medizinisch nicht notwendig.",
+            "status": "open"
+          }
+        ]
+      },
+      "expect": {
+        "contains": [
+          "MRT des Beckens",
+          "um eine Krankheit zu erkennen (§ 27 Abs. 1 SGB V)",
+          "„Medizinisch nicht notwendig“",
+          "spezialisierte transvaginale Sonographie"
+        ],
+        "notContains": [
+          "„Medizinisch nicht notwendig.“."
+        ]
+      }
+    },
+    {
+      "id": "teen-school",
+      "title": "Jugendliche: Schulausfälle, „nimm halt die Pille“",
+      "pattern": "Jugendliche mit Fehltagen in der Schule; Beschwerden werden mit Pille ohne Abklärung abgetan.",
+      "sources": [],
+      "letter": "praxis",
+      "fields": {
+        "doctor": "Hausarztpraxis Beispiel",
+        "doctorStreet": "Str. 6",
+        "doctorZipCity": "70173 Stuttgart"
+      },
+      "state": {
+        "person": {
+          "name": "Fall E",
+          "street": "Weg 5",
+          "zipCity": "70174 Stuttgart",
+          "birthdate": "2010-01-15"
+        },
+        "symptoms": {
+          "checked": {
+            "dysmenorrhea": true,
+            "nausea": true,
+            "backLegPain": true
+          },
+          "dysmenorrheaNrs": "9",
+          "dailyImpact": true,
+          "missedDays": "2",
+          "onsetYear": "2023",
+          "hormones": "Pille",
+          "hormoneEffect": "partial"
+        },
+        "encounters": [
+          {
+            "id": "e1",
+            "date": "2025-11-11",
+            "who": "Praxis 3",
+            "specialty": "Allgemeinmedizin",
+            "said": "Nimm halt die Pille, dann ist Ruhe.",
+            "verbatim": true
+          }
+        ]
+      },
+      "expect": {
+        "contains": [
+          "Überweisung",
+          "§ 630f BGB",
+          "2 Tage pro Monat"
+        ],
+        "notContains": [
+          "Versichertennr."
+        ]
+      }
+    }
+  ]
+}

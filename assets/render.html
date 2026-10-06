@@ -1,0 +1,25 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<!-- Renders store/app artwork from the logo. Used by tools/render-assets.mjs:
+     ?k=icon (1024 opaque) | fg (foreground, transparent) | bg | splash | feature (1024x500) -->
+<style>
+  html, body { margin: 0; background: transparent; }
+  .box { width: 100vw; height: 100vh; display: grid; place-items: center; overflow: hidden; font-family: "Segoe UI", system-ui, sans-serif; }
+  .ink { background: #1d1a2b; }
+  svg { display: block; }
+  .feature { background: #1d1a2b; color: #fbf9f4; grid-template-columns: auto auto; gap: 40px; justify-content: center; }
+  .feature h1 { font-size: 96px; margin: 0; letter-spacing: -2px; } .feature h1 b { font-weight: 800; }
+  .feature p { font-size: 30px; white-space: nowrap; margin: 8px 0 0; color: #f5c518; font-weight: 600; }
+</style></head>
+<body><div id="b" class="box"></div>
+<script>
+const ribbon = (size) => '<svg width="' + size + '" height="' + size + '" viewBox="18 10 28 44"><path d="M32 10c-7 0-12 5-12 12 0 6 4 11 8 17L18 54h8l6-9 6 9h8L36 39c4-6 8-11 8-17 0-7-5-12-12-12zm0 7c3 0 5 2 5 5 0 3-2 7-5 11-3-4-5-8-5-11 0-3 2-5 5-5z" fill="#f5c518"/></svg>';
+const k = new URLSearchParams(location.search).get('k');
+const b = document.getElementById('b');
+const m = Math.min(innerWidth, innerHeight);
+if (k === 'icon') { b.classList.add('ink'); b.innerHTML = ribbon(m * 0.62); }
+if (k === 'fg') { b.innerHTML = ribbon(m * 0.42); }            // adaptive icon: keep inside the 66 % safe zone
+if (k === 'bg') { b.classList.add('ink'); }
+if (k === 'splash') { b.classList.add('ink'); b.innerHTML = ribbon(m * 0.22); }
+if (k === 'feature') { b.classList.add('feature'); b.innerHTML = ribbon(300) + '<div><h1><b>Fight</b>Endo</h1><p>Deine Beschwerden. Deine Rechte. Dein Brief.</p></div>'; }
+</script></body></html>

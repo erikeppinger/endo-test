@@ -1,0 +1,446 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FightEndo self-test</title>
+<!-- Runs the real app in an iframe and clicks through it. Works in any browser.
+     Must be served over http (node serve.mjs), e.g. http://localhost:5200/tests/selftest.html
+     Your FightEndo data in this browser is backed up before the test and restored afterwards. -->
+<style>
+  body { font: 15px/1.5 system-ui, sans-serif; margin: 16px; background: #fbf9f4; color: #1d1a2b; }
+  h1 { font-size: 20px; margin: 0 0 8px; }
+  #summary { font-weight: 700; font-size: 18px; margin: 8px 0; }
+  #summary.pass { color: #1b7f3b; } #summary.fail { color: #b3261e; }
+  ol { padding-left: 1.4em; } li.pass::marker { color: #1b7f3b; } li.fail { color: #b3261e; }
+  small { color: #5f5a70; display: block; }
+  iframe { width: 100%; height: 480px; border: 1px solid #ccc; border-radius: 8px; margin-top: 12px; }
+</style>
+</head>
+<body>
+<h1>FightEndo self-test</h1>
+<div id="ua"></div>
+<div id="summary" data-status="running">running…</div>
+<ol id="results"></ol>
+<iframe id="app" src="../index.html#start" title="FightEndo under test"></iframe>
+<script>
+(async function () {
+  const KEY = 'fightendo.v1';
+  const frame = document.getElementById('app');
+  const results = [];
+  const errors = [];
+  document.getElementById('ua').textContent = navigator.userAgent;
+
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const W = () => frame.contentWindow;
+  const D = () => frame.contentDocument;
+  const $ = (sel) => D().querySelector(sel);
+
+  function hookErrors() {
+    W().addEventListener('error', (e) => errors.push(String(e.message || e)));
+    W().addEventListener('unhandledrejection', (e) => errors.push(String(e.reason)));
+    W().confirm = () => true;       // no blocking dialogs during the test
+    W().print = () => {};
+  }
+  function waitLoad() { return new Promise((r) => frame.addEventListener('load', r, { once: true })); }
+  async function go(view) { W().location.hash = view; await sleep(150); }
+  function set(bind, value) {
+    const el = $('[data-bind="' + bind + '"]');
+    if (!el) throw new Error('field not found: ' + bind);
+    if (el.type === 'checkbox') el.checked = value; else el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  async function click(sel) {
+    const el = $(sel);
+    if (!el) throw new Error('button not found: ' + sel);
+    el.click(); await sleep(150);
+  }
+  async function test(name, fn) {
+    try { const note = await fn(); results.push({ name, ok: true, note: note || '' }); }
+    catch (e) { results.push({ name, ok: false, note: e.message }); }
+    render();
+  }
+  function assert(cond, msg) { if (!cond) throw new Error(msg); }
+  function render() {
+    document.getElementById('results').innerHTML = results.map((r) =>
+      '<li class="' + (r.ok ? 'pass' : 'fail') + '">' + (r.ok ? 'PASS ' : 'FAIL ') + r.name +
+      (r.note ? '<small>' + r.note.replace(/</g, '&lt;') + '</small>' : '') + '</li>').join('');
+  }
+
+  // Back up real data, start clean.
+  let backup = null;
+  const INFO = 'fightendo.webinfo';
+  let infoSeen = null;
+  try {
+    backup = localStorage.getItem(KEY); localStorage.removeItem(KEY);
+    infoSeen = localStorage.getItem(INFO); localStorage.removeItem(INFO);
+  } catch (e) { /* storage blocked */ }
+
+  if (!frame.contentDocument || frame.contentDocument.readyState !== 'complete') await waitLoad();
+  frame.contentWindow.location.reload(); await waitLoad(); hookErrors(); await sleep(200);
+
+  await test('first start follows the device language', async () => {
+    const want = /^de/i.test(navigator.language) ? 'de' : 'en';
+    const got = D().documentElement.lang;
+    assert(got === want, 'device ' + navigator.language + ' → expected ' + want + ', got ' + got);
+    set('settings.locale', 'de'); await sleep(150);   // the rest of the test runs in German
+    return navigator.language + ' → ' + got;
+  });
+
+  await test('web version: first-visit note explains local storage, once', async () => {
+    const d = D().getElementById('webinfo');
+    assert(d && d.open, 'first-visit note not shown');
+    assert(d.querySelectorAll('li').length === 3 && /Browser/.test(d.textContent), 'note content incomplete');
+    d.querySelector('[data-view="help"]').click(); await sleep(150);
+    assert(!D().getElementById('webinfo'), 'note did not close');
+    assert(/help/.test(W().location.hash), '"More in Help" should open the help page');
+    assert(/GitHub/.test(D().getElementById('view').textContent), 'help page does not explain hosting');
+    assert(D().getElementById('helplink').getAttribute('aria-current') === 'page', 'header help link not marked');
+    const p = waitLoad(); W().location.reload(); await p; hookErrors(); await sleep(200);
+    assert(!D().getElementById('webinfo'), 'note shown again after it was dismissed');
+    await go('start');
+  });
+
+  await test('app boots and renders navigation', () => {
+    const links = D().querySelectorAll('#nav a');
+    assert(links.length === 7, 'expected 7 nav links, got ' + links.length);
+    assert($('h1') && /Endometriose/.test($('h1').textContent), 'start headline missing');
+  });
+
+  await test('phone navigation: bottom bar, sub-pages and "next" buttons', async () => {
+    const bar = D().getElementById('bottomnav');
+    assert(bar && bar.querySelectorAll('a').length === 5, 'bottom bar needs 5 entries');
+    if (W().innerWidth <= 720) assert(W().getComputedStyle(bar).display !== 'none', 'bottom bar hidden on a phone-sized screen');
+    await go('diary');
+    assert(/symptoms/.test(bar.querySelector('[aria-current="page"]').getAttribute('href')), '"Symptoms" should stay active on the diary page');
+    assert($('.segmented a.on') && /diary/.test($('.segmented a.on').getAttribute('href')), 'diary switch not active');
+    await click('.next [data-action="go"]');
+    assert(/history/.test(W().location.hash), '"Next" from diary should open doctor visits');
+    await go('more');
+    assert(D().querySelectorAll('.more-item').length === 5, '"More" page incomplete');
+    // Scrolled to the very end, the last line must sit above the fixed bottom bar – at every text size.
+    if (W().getComputedStyle(bar).display !== 'none') {
+      const hidden = [];
+      for (const size of ['0.9', '1', '1.5']) {
+        set('settings.textSize', size); await sleep(150);
+        for (const v of ['start', 'more', 'data', 'sources']) {
+          await go(v);
+          W().scrollTo(0, 1e7); await sleep(80);
+          // Position of the actual text (not the box): the last rendered line of the footer.
+          const range = D().createRange();
+          range.selectNodeContents(D().getElementById('footer'));
+          const rects = range.getClientRects();
+          const textBottom = rects.length ? rects[rects.length - 1].bottom : 0;
+          const top = bar.getBoundingClientRect().top;
+          if (textBottom > top + 1) hidden.push(v + '@' + size + ' (text ' + Math.round(textBottom) + ' > bar ' + Math.round(top) + ')');
+        }
+        await go('more');
+      }
+      set('settings.textSize', '1');
+      assert(!hidden.length, 'last line hidden behind the bottom bar: ' + hidden.join(', '));
+    }
+    await go('start');
+    return 'viewport ' + W().innerWidth + 'px';
+  });
+
+  await test('Content-Security-Policy blocks network requests', async () => {
+    let blocked = false;
+    try { await W().fetch('https://example.com/'); } catch (e) { blocked = true; }
+    assert(blocked, 'fetch to example.com was NOT blocked');
+    return 'fetch() rejected as expected';
+  });
+
+  await test('symptom checklist updates the guideline summary', async () => {
+    await go('symptoms');
+    ['dysmenorrhea', 'dyschezia', 'dyspareunia', 'fatigue'].forEach((k) => set('symptoms.checked.' + k, true));
+    set('symptoms.dysmenorrheaNrs', '9'); set('symptoms.onsetYear', '2014'); set('symptoms.dailyImpact', true);
+    set('symptoms.painkillers', 'Ibuprofen'); set('symptoms.painkillerEffect', 'partial');
+    const txt = $('[data-derived="symptomSummary"]').textContent;
+    assert(/^.*3 Leitlinien/.test(txt.replace(/\s+/g, ' ')), 'summary should count 3 guideline symptoms: ' + txt);
+  });
+
+  await test('diary entry and statistics', async () => {
+    await go('diary');
+    await click('[data-action="add"][data-list="diary"]');
+    set('diary.0.pain', '8'); set('diary.0.missed', true);
+    const txt = $('[data-derived="diaryStats"]').textContent;
+    assert(/max\. 8/.test(txt) && /1 Ausfalltage/.test(txt), 'unexpected stats: ' + txt);
+  });
+
+  await test('appeal deadline: 4-day notice + 1 month, weekend shifts to Monday', async () => {
+    await go('history');
+    await click('[data-action="add"][data-list="encounters"]');
+    set('encounters.0.who', 'Dr. Test'); set('encounters.0.said', 'Das ist psychisch.'); set('encounters.0.verbatim', true);
+    await click('[data-action="add"][data-list="decisions"]');
+    set('decisions.0.date', '2026-01-27'); set('decisions.0.ref', 'AZ-1'); set('decisions.0.what', 'MRT');
+    // 27.01. + 4 days = 31.01.; + 1 month = 28.02.2026 (Saturday) -> Monday 02.03.2026
+    const txt = $('[data-derived="deadline"]').textContent;
+    assert(/02\.03\.2026/.test(txt), 'expected 02.03.2026, got: ' + txt);
+    return txt;
+  });
+
+  const letterChecks = {
+    'kk-antrag': [/§ 27 Abs\. 1 SGB V/, /„Das ist psychisch\.“/, /Anlagen:/, /Quellen:\n\[1\]/, /DOI: 10\.1093\/hropen\/hoac009/, /Art\. 12 CEDAW/],
+    'widerspruch': [/Widerspruch gegen Ihren Bescheid vom 27\.01\.2026/, /AZ-1/, /§ 84 Abs\. 1 SGG/],
+    'praxis': [/Überweisung/, /§ 630f BGB/],
+    'akte': [/§ 630g BGB/, /C-307\/22/],
+    'chronologie': [/27\.01\.2026/, /Dr\. Test/]
+  };
+  const letterText = () => ($('.letter-head') ? $('.letter-head').innerText + '\n' : '') + $('.letter-out textarea').value;
+
+  for (const id of Object.keys(letterChecks)) {
+    await test('letter "' + id + '" generates complete text', async () => {
+      await go('letter');
+      set('letter.type', id); await sleep(150);
+      set('person.name', 'Test Person'); set('person.zipCity', '10115 Berlin');
+      const text = letterText();
+      assert(text.length > 200, 'letter too short');
+      assert(!/undefined|NaN|\[object /.test(text), 'letter contains undefined/NaN');
+      letterChecks[id].forEach((re) => assert(re.test(text), 'missing ' + re));
+      return text.length + ' characters';
+    });
+  }
+
+  await test('live letter: ticking an argument adds/removes its paragraph', async () => {
+    await go('letter'); set('letter.type', 'kk-antrag'); await sleep(150);
+    const has = () => /Art\. 2 Abs\. 2 S\. 1 GG/.test(letterText());
+    set('letter.options.kk-antrag.rights', false);
+    assert(!has(), 'rights paragraph still present after unticking');
+    set('letter.options.kk-antrag.rights', true);
+    assert(has(), 'rights paragraph missing after ticking again');
+    return 'paragraph toggles instantly';
+  });
+
+  await test('live letter: name, symptom notes and own addition appear', async () => {
+    set('person.name', 'Maria Muster');
+    set('letter.extra.kk-antrag', 'MEINE-ERGAENZUNG: Ich bitte um Rückruf.');
+    await go('symptoms'); set('symptoms.notes', 'NOTIZ-XYZ'); await go('letter');
+    const text = letterText();
+    assert(/Maria Muster/.test($('.letter-head').textContent), 'sender name not updated in the letterhead');
+    assert(text.includes('NOTIZ-XYZ'), 'symptom notes missing');
+    const e = text.indexOf('MEINE-ERGAENZUNG'), g = text.lastIndexOf('Mit freundlichen Grüßen');
+    assert(e > 0 && e < g, 'own addition missing or not before the closing');
+  });
+
+  await test('manual edit pauses live updates, rebuild restores them', async () => {
+    const ta = $('.letter-out textarea');
+    ta.value = ta.value + '\nHANDEDIT';
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    assert(/pausiert/.test($('[data-derived="letterStatus"]').textContent), 'no "paused" notice');
+    set('letter.options.kk-antrag.rights', false);
+    assert(letterText().includes('HANDEDIT'), 'hand edit was overwritten');
+    await click('[data-action="generate"]');
+    assert(!letterText().includes('HANDEDIT') && !/Art\. 2 Abs\. 2 S\. 1 GG/.test(letterText()), 'rebuild did not apply current options');
+    set('letter.options.kk-antrag.rights', true);
+  });
+
+  await test('signature is drawn and embedded in the PDF', async () => {
+    $('#sig-root').closest('details').open = true; await sleep(100);
+    const pad = $('#sig-pad');
+    const r = pad.getBoundingClientRect();
+    const PE = W().PointerEvent;
+    const ev = (type, x, y) => pad.dispatchEvent(new PE(type,{ bubbles: true, clientX: r.left + x, clientY: r.top + y, pointerId: 1 }));
+    ev('pointerdown', 20, 40); for (let i = 0; i < 12; i++) ev('pointermove', 20 + i * 15, 40 + (i % 2) * 20); ev('pointerup', 200, 40);
+    const saved = JSON.parse(localStorage.getItem(KEY) || '{}').signature;
+    assert(saved && /^data:image\/jpeg/.test(saved.dataUrl), 'signature not stored');
+    let blob = null;
+    // Capture the file instead of downloading it: no test files in the user's Downloads.
+    const orig = W().URL.createObjectURL;
+    const origClick = W().HTMLAnchorElement.prototype.click;
+    const origPicker = W().showSaveFilePicker;
+    W().URL.createObjectURL = (b) => { blob = b; return orig.call(W().URL, b); };
+    W().HTMLAnchorElement.prototype.click = function () { if (!this.download) origClick.call(this); };
+    W().showSaveFilePicker = undefined;
+    await click('[data-action="pdf"]');
+    W().URL.createObjectURL = orig;
+    W().HTMLAnchorElement.prototype.click = origClick;
+    W().showSaveFilePicker = origPicker;
+    assert(blob, 'no PDF produced');
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    const head = String.fromCharCode.apply(null, bytes.slice(0, 5));
+    const ascii = Array.from(bytes.slice(0, 4000), (b) => String.fromCharCode(b)).join('');
+    assert(head === '%PDF-', 'not a PDF');
+    assert(/\/Subtype \/Image/.test(ascii), 'signature image not embedded');
+    return Math.round(bytes.length / 1024) + ' KB PDF with signature';
+  });
+
+  await test('DIN 5008 PDF: letterhead, bold subject, fold marks, page numbers', async () => {
+    const pdf = W().FightEndo.pdf;
+    const head = { sender: ['Maria Muster', 'Musterweg 1', '10115 Berlin'], recipient: ['Kasse', 'Platz 2', '10117 Berlin'], info: [['Datum', '27.09.2026']] };
+    const long = 'Betreff Test\n\nSehr geehrte Damen und Herren,\n\n' + 'Text. '.repeat(900) + '\n\nMit freundlichen Grüßen\n\n\nMaria Muster';
+    const bytes = pdf.buildLetter(head, long, { anchor: 'Mit freundlichen Grüßen', pageLabel: 'Seite {i} von {n}' });
+    const s = Array.from(bytes, (b) => String.fromCharCode(b)).join('');
+    assert(/\/BaseFont \/Helvetica-Bold/.test(s) && /\/F2 11 Tf [\d.]+ [\d.]+ Td \(Betreff Test\)/.test(s), 'subject not bold');
+    assert(/\(Maria Muster \\267 Musterweg 1 \\267 10115 Berlin\)/.test(s), 'return address line missing');
+    assert(/Seite 1 von \d/.test(s), 'page numbers missing');
+    const fold = (105 * 72 / 25.4);
+    assert(s.includes((841.89 - fold).toFixed(2) + ' m'), 'fold mark missing');
+    return (s.match(/\/Type \/Page /g) || []).length + ' pages';
+  });
+
+  await test('signature from a photo: crop, clean up, place', async () => {
+    $('#sig-root').closest('details').open = true;
+    $('[data-sig="photo"]').click(); await sleep(100);
+    // A fake photo: grey paper with a dark scribble and a shadow.
+    const c = D().createElement('canvas'); c.width = 800; c.height = 500;
+    const g = c.getContext('2d');
+    g.fillStyle = '#c9c4b8'; g.fillRect(0, 0, 800, 500); g.fillStyle = '#b3ad9f'; g.fillRect(0, 380, 800, 120);
+    g.strokeStyle = '#1a2a6c'; g.lineWidth = 6; g.beginPath(); g.moveTo(200, 260); g.bezierCurveTo(260, 150, 320, 330, 400, 230); g.lineTo(560, 240); g.stroke();
+    const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.9));
+    const dt = new (W().DataTransfer)();
+    dt.items.add(new (W().File)([blob], 'unterschrift.jpg', { type: 'image/jpeg' }));
+    const input = $('#sig-file');
+    input.files = dt.files;
+    input.dispatchEvent(new Event('change', { bubbles: true }));
+    for (let i = 0; i < 50 && $('.sig-editor').hidden; i++) await sleep(100);
+    assert(!$('.sig-editor').hidden, 'photo editor did not open');
+    const pc = $('#sig-photo'); const r = pc.getBoundingClientRect();
+    const PE = W().PointerEvent;
+    const at = (type, fx, fy) => pc.dispatchEvent(new PE(type, { bubbles: true, pointerId: 2, clientX: r.left + r.width * fx, clientY: r.top + r.height * fy }));
+    at('pointerdown', 0.15, 0.2); at('pointermove', 0.5, 0.5); at('pointermove', 0.8, 0.7); at('pointerup', 0.8, 0.7);
+    $('[data-sig-act="apply"]').click(); await sleep(200);
+    const sig = JSON.parse(localStorage.getItem(KEY) || '{}').signature;
+    assert(sig && sig.source === 'photo', 'photo signature not stored');
+    assert(sig.width < 520 && sig.height < 300, 'not cropped/trimmed (' + sig.width + '×' + sig.height + ')');
+    assert(!$('.sig-place').hidden, 'placement preview not shown');
+    const dx = $('#sig-dx'); dx.value = 20; dx.dispatchEvent(new Event('input', { bubbles: true }));
+    assert(JSON.parse(localStorage.getItem(KEY)).signature.dx === 20, 'placement not saved');
+    return sig.width + '×' + sig.height + ' px, moved 20 mm';
+  });
+
+  await test('input with HTML/script is shown as text, never executed', async () => {
+    W().__pwned = false;
+    const evil = '<img src=x onerror="window.__pwned=true"><script>window.__pwned=true<\/script>';
+    try {
+      await go('history');
+      set('encounters.0.who', evil);
+      await go('letter'); await sleep(150);
+      set('person.name', evil); await sleep(150);
+      assert(/<img src=x/.test($('.letter-head').textContent), 'text was not preserved in the letterhead');
+      await go('history'); await sleep(150);
+      assert(!W().__pwned, 'injected code ran');
+      assert(!D().querySelector('#view img[src="x"]'), 'injected <img> was rendered as HTML');
+    } finally {
+      await go('history'); set('encounters.0.who', 'Dr. Test');
+      await go('letter'); set('person.name', 'Maria Muster');
+    }
+  });
+
+  await test('English UI; letters stay in the country language', async () => {
+    set('settings.locale', 'en'); await sleep(150);
+    assert(/Symptoms/.test(D().getElementById('nav').textContent), 'nav not English');
+    assert(/Write a letter/.test($('h1').textContent), 'letter page not English');
+    assert(/Sehr geehrte Damen und Herren/.test(letterText()), 'letter should stay German');
+    set('settings.locale', 'de'); await sleep(150);
+    assert(/Beschwerden/.test(D().getElementById('nav').textContent), 'switching back to German failed');
+  });
+
+  await test('data persists across reload', async () => {
+    const p = waitLoad(); W().location.reload(); await p; hookErrors(); await sleep(200);
+    await go('history');
+    assert($('[data-bind="encounters.0.who"]').value === 'Dr. Test', 'encounter lost after reload');
+  });
+
+  await test('web version: backup reminder until a backup was downloaded', async () => {
+    await go('symptoms');
+    assert($('.backup-nag'), 'no backup reminder although there is data');
+    await click('[data-action="snoozeBackup"]');
+    assert(!$('.backup-nag'), '"Later" did not hide the reminder');
+    let p = waitLoad(); W().location.reload(); await p; hookErrors(); await sleep(200);
+    await go('symptoms');
+    assert($('.backup-nag'), 'reminder should come back on the next visit');
+    // Stand in for the save dialog, then download the backup from the reminder.
+    let written = '';
+    W().showSaveFilePicker = async () => ({ createWritable: async () => ({ write: async (b) => { written = await b.text(); }, close: async () => {} }) });
+    await click('.backup-nag [data-action="export"]'); await sleep(150);
+    assert(/Maria Muster/.test(written), 'backup file content missing');
+    assert(!$('.backup-nag'), 'reminder still shown after the backup');
+    p = waitLoad(); W().location.reload(); await p; hookErrors(); await sleep(200);
+    await go('symptoms');
+    assert(!$('.backup-nag'), 'reminder back right after a backup');
+  });
+
+  await test('app lock: data is stored only encrypted and needs the passphrase', async () => {
+    if (!W().crypto || !W().crypto.subtle) return 'skipped – no Web Crypto here';
+    await go('data');
+    $('#sec-p1').value = 'geheim-12345'; $('#sec-p2').value = 'geheim-12345';
+    const saved = new Promise((r) => D().addEventListener('fightendo:saved', r, { once: true }));
+    $('form[data-form="enableLock"]').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    await saved;
+    const all = Object.keys(localStorage).map((k) => localStorage.getItem(k)).join(' ');
+    assert(localStorage.getItem('fightendo.enc.v1'), 'no encrypted data written');
+    assert(!localStorage.getItem(KEY), 'plaintext copy still present');
+    assert(!/Maria Muster|Das ist psychisch|NOTIZ-XYZ/.test(all), 'plaintext health data found in storage');
+    const p = waitLoad(); W().location.reload(); await p; hookErrors(); await sleep(250);
+    assert($('#lock-pass'), 'lock screen not shown after reload');
+    assert(!/Maria Muster/.test(D().body.textContent), 'data visible while locked');
+    const unlockTry = () => new Promise((r) => D().addEventListener('fightendo:unlock', (e) => r(e.detail.ok), { once: true }));
+    $('#lock-pass').value = 'falsch';
+    let tried = unlockTry();
+    $('form[data-form="unlock"]').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    assert(!(await tried), 'wrong passphrase accepted');
+    assert($('#lock-error').textContent, 'wrong passphrase not rejected');
+    $('#lock-pass').value = 'geheim-12345';
+    tried = unlockTry();
+    $('form[data-form="unlock"]').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    assert(await tried, 'correct passphrase rejected');
+    await go('history');
+    assert($('[data-bind="encounters.0.who"]') && $('[data-bind="encounters.0.who"]').value === 'Dr. Test', 'data not restored after unlock');
+    return 'AES-256-GCM, PBKDF2 600k';
+  });
+
+  await test('wipe removes all data', async () => {
+    await go('data');
+    await click('[data-action="wipe"]');
+    let raw = null; try { raw = localStorage.getItem(KEY); } catch (e) { /* ignore */ }
+    assert(!raw, 'storage not empty after wipe');
+  });
+
+  await test('layout has no horizontal overflow', async () => {
+    const views = ['start', 'symptoms', 'diary', 'history', 'letter', 'sources', 'data'];
+    const bad = [];
+    for (const v of views) { await go(v); const el = D().documentElement; if (el.scrollWidth > el.clientWidth + 1) bad.push(v + ' (' + el.scrollWidth + '>' + el.clientWidth + ')'); }
+    assert(!bad.length, 'overflow in: ' + bad.join(', '));
+    return 'viewport ' + D().documentElement.clientWidth + 'px';
+  });
+
+  await test('small phone (320 px) with maximum text size: nothing overflows', async () => {
+    const oldW = frame.style.width;
+    frame.style.width = '320px'; await sleep(200);
+    const bad = [];
+    try {
+      await go('more');
+      set('settings.textSize', '1.5'); await sleep(150);
+      assert(D().documentElement.dataset.textsize === '1.5', 'text size not applied');
+      for (const v of ['start', 'symptoms', 'diary', 'history', 'letter', 'more', 'sources', 'data']) {
+        await go(v);
+        const el = D().documentElement;
+        if (el.scrollWidth > el.clientWidth + 1) bad.push(v + ' (' + el.scrollWidth + '>' + el.clientWidth + ')');
+      }
+    } finally {
+      await go('more'); set('settings.textSize', '1');
+      frame.style.width = oldW; await sleep(150);
+    }
+    assert(!bad.length, 'overflow in: ' + bad.join(', '));
+    return 'all pages fit at 320 px × 150 %';
+  });
+
+  await test('no JavaScript errors', () => { assert(!errors.length, errors.join(' | ')); });
+
+  // Restore the user's own data.
+  try {
+    if (backup) localStorage.setItem(KEY, backup); else localStorage.removeItem(KEY);
+    if (infoSeen) localStorage.setItem(INFO, infoSeen); else localStorage.removeItem(INFO);
+  } catch (e) { /* ignore */ }
+
+  const failed = results.filter((r) => !r.ok).length;
+  const s = document.getElementById('summary');
+  s.textContent = (failed ? 'FAIL' : 'PASS') + ' ' + (results.length - failed) + '/' + results.length;
+  s.className = failed ? 'fail' : 'pass';
+  s.dataset.status = failed ? 'fail' : 'pass';
+  document.title = s.textContent;
+})();
+</script>
+</body>
+</html>

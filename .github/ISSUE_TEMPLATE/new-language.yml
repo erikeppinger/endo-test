@@ -1,0 +1,18 @@
+name: Translate the app
+description: Add or improve a language of the user interface
+labels: [translation]
+body:
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: e.g. Français (fr)
+    validations:
+      required: true
+  - type: checkboxes
+    id: plan
+    attributes:
+      label: Plan
+      options:
+        - label: I will run `npm run new -- language <code> "<Name>"` and translate the file
+        - label: I can review someone else's translation

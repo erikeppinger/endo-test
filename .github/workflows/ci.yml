@@ -1,0 +1,24 @@
+# Runs on every pull request: the same checks contributors run locally.
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Registration, content and stress test (npm run check)
+        run: npm run check
+      - name: App self-test in headless Chrome (npm test)
+        run: npm test
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
