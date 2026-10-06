@@ -116,6 +116,7 @@ textarea[data-bind="letter.text"] { font: 15px/1.6 ui-monospace, "Cascadia Mono"
 /* buttons */
 .btn {
   font: inherit; font-weight: 600; cursor: pointer; border-radius: 999px; padding: 10px 18px; min-height: 44px;
+  max-width: 100%; overflow-wrap: anywhere;  /* long German words break even without a hyphenation dictionary */
   border: 1px solid var(--ink); background: transparent; color: var(--ink);
 }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }

@@ -5,10 +5,9 @@
 #   ANDROID_KEYSTORE_BASE64   base64 of the upload keystore (.jks)
 #   ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD
 name: Android
+# Paused while only the web version is tested: run by hand (Actions → Run workflow).
+# To build on every push again, restore:  push: { branches: [main], tags: ['v*'] }
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
   workflow_dispatch:
 
 permissions:

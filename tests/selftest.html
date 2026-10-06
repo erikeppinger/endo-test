@@ -416,7 +416,13 @@
       for (const v of ['start', 'symptoms', 'diary', 'history', 'letter', 'more', 'sources', 'data']) {
         await go(v);
         const el = D().documentElement;
-        if (el.scrollWidth > el.clientWidth + 1) bad.push(v + ' (' + el.scrollWidth + '>' + el.clientWidth + ')');
+        if (el.scrollWidth > el.clientWidth + 1) {
+          // Name the widest culprits so a failure on another OS (other fonts) is easy to fix.
+          const cw = el.clientWidth;
+          const culprits = [...D().querySelectorAll('#view *')].filter((x) => x.getBoundingClientRect().right > cw + 1 && !x.querySelector('*'))
+            .slice(0, 3).map((x) => x.tagName.toLowerCase() + (x.className ? '.' + String(x.className).split(' ').join('.') : '') + ' "' + (x.textContent || '').trim().slice(0, 30) + '"');
+          bad.push(v + ' (' + el.scrollWidth + '>' + cw + ': ' + culprits.join(', ') + ')');
+        }
       }
     } finally {
       await go('more'); set('settings.textSize', '1');
