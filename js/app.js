@@ -601,9 +601,19 @@
       '<div class="actions"><button class="btn primary" data-action="webInfoClose">' + esc(t('webinfo.ok')) + '</button>' +
       '<button class="btn" data-action="webInfoClose" data-view="data">' + esc(t('webinfo.lock')) + '</button>' +
       '<button class="btn ghost" data-action="webInfoClose" data-view="help">' + esc(t('webinfo.help')) + '</button></div>';
-    d.addEventListener('close', () => { try { localStorage.setItem(WEBINFO_KEY, '1'); } catch (e) { /* ignore */ } d.remove(); });
+    d.addEventListener('close', dismissWebInfo);   // Esc key; the buttons call dismissWebInfo directly
     document.body.appendChild(d);
     if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
+  }
+
+  // Remember the note was seen and remove it. Done here, not only in the dialog's
+  // "close" event: that event did not reliably arrive in every browser.
+  function dismissWebInfo() {
+    try { localStorage.setItem(WEBINFO_KEY, '1'); } catch (e) { /* ignore */ }
+    const d = document.getElementById('webinfo');
+    if (!d) return;
+    if (typeof d.close === 'function' && d.open) d.close();
+    d.remove();
   }
 
   function maybeShowWebInfo() {
@@ -815,8 +825,7 @@
     snoozeBackup() { backupSnoozed = true; render(); },
     showWebInfo() { showWebInfo(); },
     webInfoClose(el) {
-      const d = document.getElementById('webinfo');
-      if (d) { if (typeof d.close === 'function' && d.open) d.close(); else d.dispatchEvent(new Event('close')); }
+      dismissWebInfo();
       const to = el.getAttribute('data-view');
       if (to) location.hash = to;
     },
