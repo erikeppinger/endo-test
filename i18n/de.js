@@ -45,7 +45,7 @@ FightEndo.registerLocale('de', {
   'start.begin': 'Los geht’s',
 
   'sym.title': 'Deine Beschwerden',
-  'sym.lead': 'Kreuze an, was auf dich zutrifft. Die markierten Symptome nennen internationale Leitlinien (NICE NG73, ESHRE 2022) ausdrücklich als Grund, an Endometriose zu denken.',
+  'sym.lead': "Kreuze an, was auf dich zutrifft.",
   'sym.cardinalBadge': 'Leitlinien-Symptom',
   'sym.dysmenorrhea': 'Starke Regelschmerzen',
   'sym.chronicPelvicPain': 'Unterbauch-/Beckenschmerzen auch außerhalb der Periode (seit ≥ 6 Monaten)',

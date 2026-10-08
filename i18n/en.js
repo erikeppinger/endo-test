@@ -46,7 +46,7 @@ FightEndo.registerLocale('en', {
   'start.begin': 'Get started',
 
   'sym.title': 'Your symptoms',
-  'sym.lead': 'Tick what applies to you. The highlighted symptoms are named by international guidelines (NICE NG73, ESHRE 2022) as reasons to consider endometriosis.',
+  'sym.lead': "Tick whatever applies to you.",
   'sym.cardinalBadge': 'Guideline symptom',
   'sym.dysmenorrhea': 'Severe period pain',
   'sym.chronicPelvicPain': 'Lower abdominal / pelvic pain outside your period too (for ≥ 6 months)',
