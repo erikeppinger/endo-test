@@ -92,5 +92,8 @@
     sources,
     resources,
     letters
+    // Optional: an example letter with a fictional person, shown from the start page
+    // ("See an example letter"). See jurisdictions/de/index.js for a full example.
+    // example: { letter: '<letter id>', state: { person: {…}, symptoms: {…}, diary: [], encounters: [], decisions: [] } }
   });
 })();

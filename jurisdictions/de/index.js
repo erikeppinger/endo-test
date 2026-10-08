@@ -474,6 +474,32 @@
     objectionDeadline,
     sources,
     resources,
-    letters
+    letters,
+    // Optional: a finished example letter with a fictional person, shown from the start page.
+    example: {
+      letter: 'kk-antrag',
+      state: {
+        person: {
+          name: 'Maria Muster', street: 'Beispielstraße 12', zipCity: '12345 Musterstadt', birthdate: '1996-05-14',
+          insuranceNumber: 'X123456789', insurer: 'Musterkasse', insurerStreet: 'Postfach 1000', insurerZipCity: '12340 Musterstadt'
+        },
+        symptoms: {
+          checked: { dysmenorrhea: true, chronicPelvicPain: true, dyschezia: true, fatigue: true, nausea: true },
+          dysmenorrheaNrs: '9', dailyImpact: true, onsetYear: '2014', missedDays: '3', emergencyVisits: '2',
+          diagnosis: 'suspected', painkillers: 'Ibuprofen 600, Metamizol', painkillerEffect: 'partial',
+          hormones: 'Pille, Dienogest', hormoneEffect: 'side'
+        },
+        diary: [
+          { id: 'x1', date: '2026-08-03', pain: '9', bleeding: 'heavy', missed: true, notes: '' },
+          { id: 'x2', date: '2026-08-04', pain: '7', bleeding: 'medium', missed: true, notes: '' },
+          { id: 'x3', date: '2026-08-31', pain: '8', bleeding: 'heavy', missed: true, notes: '' },
+          { id: 'x4', date: '2026-09-01', pain: '6', bleeding: 'medium', missed: false, notes: '' }
+        ],
+        encounters: [
+          { id: 'y1', date: '2025-11-20', who: 'Frauenarztpraxis (Beispiel)', specialty: 'Gynäkologie', said: 'Regelschmerzen sind normal, da müssen Sie durch.', refused: 'Überweisung an ein Endometriosezentrum', verbatim: true, witness: '' }
+        ],
+        decisions: []
+      }
+    }
   });
 })();

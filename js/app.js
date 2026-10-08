@@ -16,7 +16,6 @@
   const UI_LANG_KEY = 'fightendo.lang';  // only the UI language, so the lock screen speaks it
   const TEXT_SIZE_KEY = 'fightendo.textsize';  // likewise the text size (not sensitive)
   const TEXT_SIZES = ['0.9', '1', '1.15', '1.3', '1.5'];
-  const WEBINFO_KEY = 'fightendo.webinfo';     // first-visit note of the web version was seen (not sensitive)
   const BACKUP_REMIND_DAYS = 14;               // web version: remind to download a backup this often
   let backupSnoozed = false;                   // "Later" hides the reminder until the next visit
 
@@ -35,7 +34,9 @@
   }
 
   const VIEWS = ['start', 'symptoms', 'diary', 'history', 'letter', 'sources', 'data'];
-  const ALL_VIEWS = VIEWS.concat(['more', 'help']);
+  const ALL_VIEWS = VIEWS.concat(['more', 'help', 'example']);
+  // The four steps of the flow, for the "Step n of 4" indicator. The diary is optional.
+  const FLOW = ['symptoms', 'diary', 'history', 'letter'];
 
   /* Bottom navigation on phones: 5 thumb-reachable targets. Diary lives under
    * "Symptoms", sources and data under "More". Icons are inline SVG (no fonts, no network). */
@@ -46,7 +47,7 @@
     letter: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3.5 6.5 8.5 7 8.5-7"/>',
     more: '<circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/>'
   };
-  const BOTTOM = [['start', ['start']], ['symptoms', ['symptoms', 'diary']], ['history', ['history']], ['letter', ['letter']], ['more', ['more', 'help', 'sources', 'data']]];
+  const BOTTOM = [['start', ['start', 'example']], ['symptoms', ['symptoms', 'diary']], ['history', ['history']], ['letter', ['letter']], ['more', ['more', 'help', 'sources', 'data']]];
   // "Next" button at the end of each step of the flow.
   const NEXT = { symptoms: 'diary', diary: 'history', history: 'letter' };
 
@@ -122,8 +123,23 @@
   setInterval(() => { if (vault && Date.now() - lastActivity > IDLE_LOCK_MS) lockNow(); }, 15000);
 
   /* ---------- form helpers ---------- */
+  /* Small "ⓘ" button that shows a one-paragraph explanation under a field. */
+  let tipSeq = 0;
+  function tipButton(key) {
+    const id = 'tip-' + (++tipSeq);
+    return { button: '<button type="button" class="tipbtn" data-action="tip" aria-expanded="false" aria-controls="' + id + '" aria-label="' + esc(t('tip.button')) + '">ⓘ</button>',
+      text: '<p class="tip" id="' + id + '" hidden>' + esc(t(key)) + '</p>' };
+  }
+
   function field(label, path, opts) {
     opts = opts || {};
+    if (opts.tip) {
+      const tip = tipButton(opts.tip);
+      const inner = field(label, path, Object.assign({}, opts, { tip: null }));
+      // The button goes next to the label (or the checkbox), the text below the input.
+      if (opts.type === 'checkbox') return '<div class="tipwrap">' + inner.replace(/<\/label>$/, '</label>' + tip.button) + tip.text + '</div>';
+      return inner.replace('</label>', '</label>' + tip.button).replace(/<\/div>$/, tip.text + '</div>');
+    }
     const v = FE.getPath(state, path);
     const id = 'f-' + path.replace(/\./g, '-');
     const type = opts.type || 'text';
@@ -152,17 +168,62 @@
 
   views.start = function () {
     const js = Object.values(FE.jurisdictions);
+    const steps = ['start.step1', 'start.step2', 'start.step3', 'start.step4'];
     return '<section class="hero"><p class="eyebrow">FightEndo</p><h1>' + esc(t('start.title')) + '</h1><p class="lead">' + esc(t('start.lead')) + '</p>' +
-      '<button class="btn primary" data-action="go" data-view="symptoms">' + esc(t('start.begin')) + ' →</button></section>' +
-      '<div class="cards">' +
-      '<article class="card"><h3>' + esc(t('start.privacy.title')) + '</h3><p>' + esc(t('start.privacy.text')) + '</p></article>' +
-      '<article class="card"><h3>' + esc(t('start.open.title')) + '</h3><p>' + esc(t('start.open.text')) + '</p></article>' +
-      '<article class="card warn"><h3>' + esc(t('start.disclaimer.title')) + '</h3><p>' + esc(t('start.disclaimer.text')) + '</p></article>' +
-      '</div>' +
-      '<section class="panel"><h2>' + esc(t('start.steps')) + '</h2><ol class="steps"><li>' + esc(t('start.step1')) + '</li><li>' + esc(t('start.step2')) + '</li><li>' + esc(t('start.step3')) + '</li></ol>' +
+      '<div class="actions"><button class="btn primary" data-action="go" data-view="symptoms">' + esc(t('start.begin')) + ' →</button>' +
+      (J().example ? '<button class="btn" data-action="go" data-view="example">' + esc(t('start.example')) + '</button>' : '') + '</div>' +
+      '<p class="privacy-line"><span aria-hidden="true">🔒</span> ' + esc(t('start.privacyLine')) + ' <a href="#help">' + esc(t('start.privacyMore')) + '</a></p></section>' +
+      '<section class="panel accent"><h2>' + esc(t('start.why.title')) + '</h2><p>' + esc(t('start.why.text')) + '</p></section>' +
+      '<section class="panel"><h2>' + esc(t('start.steps')) + '</h2><ol class="steps">' + steps.map((k) => '<li>' + esc(t(k)) + '</li>').join('') + '</ol>' +
       field(t('start.jurisdiction'), 'settings.jurisdiction', { type: 'select', options: js.map((j) => ({ value: j.id, label: j.name })) }) +
-      '</section>';
+      '</section>' +
+      '<div class="cards">' +
+      '<article class="card warn"><h3>' + esc(t('start.disclaimer.title')) + '</h3><p>' + esc(t('start.disclaimer.text')) + '</p></article>' +
+      '<article class="card"><h3>' + esc(t('start.open.title')) + '</h3><p>' + esc(t('start.open.text')) + '</p></article>' +
+      '</div>';
   };
+
+  /* Example letter: built from the country's fictional example person, never from (or into) the user's data. */
+  views.example = function () {
+    const j = J();
+    const ex = j.example;
+    const letter = ex && (j.letters || []).find((l) => l.id === ex.letter);
+    let body = '';
+    if (letter) {
+      const st = FE.merge(FE.emptyState(), JSON.parse(JSON.stringify(ex.state)));
+      st.settings.jurisdiction = j.id;
+      st.letter.options[letter.id] = FE.optionDefaults(st, j, letter);
+      const res = FE.buildLetter(st, j, letter);
+      const head = typeof res === 'string' ? '' : '<div class="letter-head">' +
+        '<div class="lh-sender">' + res.sender.map(esc).join('<br>') + '</div>' +
+        '<div class="lh-row"><div class="lh-recipient">' + res.recipient.map(esc).join('<br>') + '</div>' +
+        '<dl class="lh-info">' + (res.info || []).map((r) => '<dt>' + esc(r[0]) + '</dt><dd>' + esc(r[1]) + '</dd>').join('') + '</dl></div></div>';
+      const text = typeof res === 'string' ? res : res.subject + '\n\n' + res.body;
+      body = '<section class="panel letter-out example-letter"><p class="muted">' + esc(letter.title) + '</p>' + head + '<pre class="example-text">' + esc(text) + '</pre></section>';
+    }
+    const buttons = '<div class="actions"><button class="btn primary" data-action="go" data-view="symptoms">' + esc(t('example.begin')) + ' →</button>' +
+      '<button class="btn" data-action="go" data-view="start">' + esc(t('example.back')) + '</button></div>';
+    return '<h1>' + esc(t('example.title')) + '</h1>' +
+      '<aside class="panel accent example-note"><p><strong>' + esc(t('example.noteTitle')) + '</strong> ' + esc(t('example.note')) + '</p></aside>' +
+      buttons + body + buttons;
+  };
+
+  /* "Step n of 4" above each page of the flow. */
+  function progress(view) {
+    const n = FLOW.indexOf(view);
+    if (n < 0) return '';
+    const name = t('nav.' + view) + (view === 'diary' ? ' (' + t('progress.optional') + ')' : '');
+    return '<p class="progress" aria-label="' + esc(t('progress', { n: n + 1, total: FLOW.length, name: name })) + '">' +
+      '<span class="progress-bar" aria-hidden="true">' + FLOW.map((v, i) => '<i class="' + (i <= n ? 'on' : '') + '"></i>').join('') + '</span>' +
+      '<span>' + esc(t('progress', { n: n + 1, total: FLOW.length, name: name })) + '</span></p>';
+  }
+
+  /* "Why this matters" box at the top of a page; can be hidden, and shown again from Help. */
+  function why(view) {
+    if ((state.settings.hiddenWhy || []).indexOf(view) >= 0) return '';
+    return '<aside class="why" data-why="' + view + '"><p><strong>' + esc(t('why.' + view + '.title')) + '</strong> ' + esc(t('why.' + view + '.text')) + '</p>' +
+      '<button class="btn ghost small" data-action="hideWhy" data-view="' + view + '">' + esc(t('why.hide')) + '</button></aside>';
+  }
 
   function symptomSummary() {
     const n = FE.cardinalCount(state);
@@ -176,20 +237,20 @@
       if (s.cardinal) html += '<span class="badge">' + esc(t('sym.cardinalBadge')) + '</span>';
       return html + '</li>';
     }).join('');
-    return segmented('symptoms', ['symptoms', 'diary']) + '<h1>' + esc(t('sym.title')) + '</h1><p class="lead">' + esc(t('sym.lead')) + '</p>' +
+    return progress('symptoms') + segmented('symptoms', ['symptoms', 'diary']) + '<h1>' + esc(t('sym.title')) + '</h1>' + why('symptoms') + '<p class="lead">' + esc(t('sym.lead')) + '</p>' +
       '<ul class="symlist">' + list + '</ul>' +
       '<section class="panel grid">' +
-      field(t('sym.nrs'), 'symptoms.dysmenorrheaNrs', { type: 'number', min: 0, max: 10 }) +
-      field(t('sym.diagnosis'), 'symptoms.diagnosis', { type: 'select', options: ['', 'suspected', 'diagnosed'].map((v) => ({ value: v, label: t('sym.diagnosis.' + v) })) }) +
+      field(t('sym.nrs'), 'symptoms.dysmenorrheaNrs', { type: 'number', min: 0, max: 10, tip: 'tip.nrs' }) +
+      field(t('sym.diagnosis'), 'symptoms.diagnosis', { type: 'select', options: ['', 'suspected', 'diagnosed'].map((v) => ({ value: v, label: t('sym.diagnosis.' + v) })), tip: 'tip.diagnosis' }) +
       field(t('sym.diagnosisYear'), 'symptoms.diagnosisYear', { type: 'number', min: 1950, max: new Date().getFullYear() }) +
       field(t('sym.onsetYear'), 'symptoms.onsetYear', { type: 'number', min: 1950, max: new Date().getFullYear() }) +
-      field(t('sym.missedDays'), 'symptoms.missedDays', { type: 'number', min: 0, max: 31 }) +
+      field(t('sym.missedDays'), 'symptoms.missedDays', { type: 'number', min: 0, max: 31, tip: 'tip.missedDays' }) +
       field(t('sym.emergencyVisits'), 'symptoms.emergencyVisits', { type: 'number', min: 0 }) +
-      '<div class="wide">' + field(t('sym.dailyImpact'), 'symptoms.dailyImpact', { type: 'checkbox' }) + '</div>' +
+      '<div class="wide">' + field(t('sym.dailyImpact'), 'symptoms.dailyImpact', { type: 'checkbox', tip: 'tip.dailyImpact' }) + '</div>' +
       field(t('sym.painkillers'), 'symptoms.painkillers') +
-      field(t('sym.painkillerEffect'), 'symptoms.painkillerEffect', { type: 'select', options: effectOptions() }) +
+      field(t('sym.painkillerEffect'), 'symptoms.painkillerEffect', { type: 'select', options: effectOptions(), tip: 'tip.effect' }) +
       field(t('sym.hormones'), 'symptoms.hormones') +
-      field(t('sym.hormoneEffect'), 'symptoms.hormoneEffect', { type: 'select', options: effectOptions() }) +
+      field(t('sym.hormoneEffect'), 'symptoms.hormoneEffect', { type: 'select', options: effectOptions(), tip: 'tip.effect' }) +
       '<div class="wide">' + field(t('sym.familyHistory'), 'symptoms.familyHistory', { type: 'checkbox' }) + '</div>' +
       field(t('sym.notes'), 'symptoms.notes', { type: 'textarea', wide: true }) +
       '</section>' +
@@ -221,7 +282,7 @@
         '<button class="btn ghost small" data-action="remove" data-list="diary" data-id="' + esc(r.id) + '">' + esc(t('hist.remove')) + '</button>' +
         '</div>';
     }).join('') : '<p class="muted">' + esc(t('diary.empty')) + '</p>';
-    return segmented('diary', ['symptoms', 'diary']) + '<h1>' + esc(t('diary.title')) + '</h1><p class="lead">' + esc(t('diary.lead')) + '</p>' +
+    return progress('diary') + segmented('diary', ['symptoms', 'diary']) + '<h1>' + esc(t('diary.title')) + '</h1>' + why('diary') + '<p class="lead">' + esc(t('diary.lead')) + '</p>' +
       '<p class="stats" data-derived="diaryStats">' + diaryStatsText() + '</p>' +
       '<button class="btn primary" data-action="add" data-list="diary">+ ' + esc(t('diary.add')) + '</button>' +
       '<div class="rows">' + body + '</div>' + nextButton('diary');
@@ -245,9 +306,9 @@
         field(t('hist.who'), p + 'who') +
         field(t('hist.specialty'), p + 'specialty') +
         field(t('hist.said'), p + 'said', { type: 'textarea', wide: true, rows: 2 }) +
-        '<div class="wide">' + field(t('hist.verbatim'), p + 'verbatim', { type: 'checkbox' }) + '</div>' +
+        '<div class="wide">' + field(t('hist.verbatim'), p + 'verbatim', { type: 'checkbox', tip: 'tip.verbatim' }) + '</div>' +
         field(t('hist.refused'), p + 'refused', { type: 'textarea', wide: true, rows: 2 }) +
-        field(t('hist.witness'), p + 'witness') +
+        field(t('hist.witness'), p + 'witness', { tip: 'tip.witness' }) +
         '<button class="btn ghost small" data-action="remove" data-list="encounters" data-id="' + esc(e.id) + '">' + esc(t('hist.remove')) + '</button></div>';
     }).join('') || '<p class="muted">' + esc(t('hist.emptyEnc')) + '</p>';
 
@@ -256,7 +317,7 @@
       const p = 'decisions.' + i + '.';
       return '<div class="row card">' +
         field(t('hist.decDate'), p + 'date', { type: 'date' }) +
-        field(t('hist.ref'), p + 'ref') +
+        field(t('hist.ref'), p + 'ref', { tip: 'tip.ref' }) +
         field(t('hist.status'), p + 'status', { type: 'select', options: statusOpts }) +
         field(t('hist.what'), p + 'what', { wide: true }) +
         field(t('hist.reason'), p + 'reason', { type: 'textarea', wide: true, rows: 2 }) +
@@ -264,7 +325,7 @@
         '<button class="btn ghost small" data-action="remove" data-list="decisions" data-id="' + esc(d.id) + '">' + esc(t('hist.remove')) + '</button></div>';
     }).join('') || '<p class="muted">' + esc(t('hist.emptyDec')) + '</p>';
 
-    return '<h1>' + esc(t('hist.title')) + '</h1><p class="lead">' + esc(t('hist.lead')) + '</p>' +
+    return progress('history') + '<h1>' + esc(t('hist.title')) + '</h1>' + why('history') + '<p class="lead">' + esc(t('hist.lead')) + '</p>' +
       '<h2>' + esc(t('hist.encounters')) + '</h2><button class="btn primary" data-action="add" data-list="encounters">+ ' + esc(t('hist.addEncounter')) + '</button><div class="rows">' + enc + '</div>' +
       '<h2>' + esc(t('hist.decisions')) + '</h2><button class="btn primary" data-action="add" data-list="decisions">+ ' + esc(t('hist.addDecision')) + '</button><div class="rows">' + dec + '</div>' + nextButton('history');
   };
@@ -295,7 +356,7 @@
   views.letter = function () {
     const j = J();
     const letter = currentLetter();
-    let html = '<h1>' + esc(t('letter.title')) + '</h1><p class="lead">' + esc(t('letter.lead')) + '</p>' +
+    let html = progress('letter') + '<h1>' + esc(t('letter.title')) + '</h1>' + why('letter') + '<p class="lead">' + esc(t('letter.lead')) + '</p>' +
       '<section class="panel">' +
       field(t('letter.type'), 'letter.type', { type: 'select', options: [{ value: '', label: t('letter.choose') }].concat(j.letters.map((l) => ({ value: l.id, label: l.title }))) });
     if (letter) html += '<p class="muted">' + esc(letter.description) + '</p>';
@@ -307,7 +368,7 @@
     html += '<details class="panel" open><summary>' + esc(t('letter.person')) + '</summary><div class="grid">' +
       field(t('letter.name'), P + 'name') + field(t('letter.birthdate'), P + 'birthdate', { type: 'date' }) +
       field(t('letter.street'), P + 'street') + field(t('letter.zipCity'), P + 'zipCity') +
-      field(t('letter.insurer'), P + 'insurer') + field(t('letter.insuranceNumber'), P + 'insuranceNumber') +
+      field(t('letter.insurer'), P + 'insurer') + field(t('letter.insuranceNumber'), P + 'insuranceNumber', { tip: 'tip.insuranceNumber' }) +
       field(t('letter.insurerStreet'), P + 'insurerStreet') + field(t('letter.insurerZipCity'), P + 'insurerZipCity') +
       '</div></details>';
 
@@ -325,11 +386,12 @@
     }
 
     if (letter.options && letter.options.length) {
-      html += '<section class="panel"><h2>' + esc(t('letter.options')) + '</h2>' +
+      const optTip = tipButton('tip.options');
+      html += '<section class="panel"><h2>' + esc(t('letter.options')) + ' ' + optTip.button + '</h2>' + optTip.text +
         letter.options.map((o) => field(o.label, 'letter.options.' + letter.id + '.' + o.id, { type: 'checkbox' })).join('') + '</section>';
     }
 
-    html += '<section class="panel">' + field(t('letter.extra'), 'letter.extra.' + letter.id, { type: 'textarea', rows: 3, wide: true }) + '</section>';
+    html += '<section class="panel">' + field(t('letter.extra'), 'letter.extra.' + letter.id, { type: 'textarea', rows: 3, wide: true, tip: 'tip.extra' }) + '</section>';
 
     // Rebuild on every visit (symptoms, diary or notes may have changed on other pages),
     // unless the user has edited the text by hand.
@@ -343,7 +405,7 @@
       '</section>';
 
     html += '<details class="panel"' + (state.signature ? ' open' : '') + '><summary>' + esc(t('letter.signature')) + '</summary>' +
-      '<div id="sig-root"></div></details>';
+      '<p class="muted">' + esc(t('tip.signature')) + '</p><div id="sig-root"></div></details>';
 
     html += '<section class="panel"><p class="muted">' + esc(t('letter.check')) + '</p><div class="actions">' +
       '<button class="btn primary" data-action="pdf">' + esc(t('letter.pdf')) + '</button>' +
@@ -475,7 +537,7 @@
   views.sources = function () {
     const j = J();
     const groups = ['law', 'rights', 'case', 'guideline', 'study', 'media'];
-    let html = '<h1>' + esc(t('src.title')) + '</h1><p class="lead">' + esc(t('src.lead')) + '</p><p class="muted">' + esc(t('src.reviewed', { date: j.lastReviewed })) + '</p>';
+    let html = '<h1>' + esc(t('src.title')) + '</h1>' + why('sources') + '<p class="lead">' + esc(t('src.lead')) + '</p><p class="muted">' + esc(t('src.reviewed', { date: j.lastReviewed })) + '</p>';
     groups.forEach((g) => {
       const items = Object.values(j.sources).filter((s) => s.type === g);
       if (!items.length) return;
@@ -517,7 +579,7 @@
   }
 
   views.data = function () {
-    return '<h1>' + esc(t('data.title')) + '</h1><p class="lead">' + esc(t('data.lead')) + '</p>' +
+    return '<h1>' + esc(t('data.title')) + '</h1>' + why('data') + '<p class="lead">' + esc(t('data.lead')) + '</p>' +
       securityPanel() +
       (vault ? '<p class="muted">' + esc(t('sec.exportNote')) + '</p>' : '') +
       '<section class="panel actions">' +
@@ -568,12 +630,24 @@
       sec(t('help.advice.title'), p('help.advice.text') +
         '<div class="actions"><button class="btn" data-action="go" data-view="sources">' + esc(t('nav.sources')) + '</button></div>') +
       '<p><a href="privacy.html">' + esc(t('data.privacy')) + '</a> · <a href="impressum.html">' + esc(t('nav.imprint')) + '</a>' +
-      (web ? ' · <button class="btn ghost small" data-action="showWebInfo">' + esc(t('help.showInfo')) + '</button>' : '') + '</p>';
+      ((state.settings.hiddenWhy || []).length ? ' · <button class="btn ghost small" data-action="showWhy">' + esc(t('help.showWhy')) + '</button>' : '') + '</p>';
   };
 
   function hasContent(st) {
     return Object.keys(st.symptoms.checked).some((k) => st.symptoms.checked[k]) ||
       st.diary.length > 0 || st.encounters.length > 0 || st.decisions.length > 0 || !!st.person.name;
+  }
+
+  /* Offer a password once the user has entered something personal (name, address or a doctor visit),
+   * on the pages where that happens. "No thanks" hides it for good; "My data" always has the option. */
+  function lockOffer(v) {
+    if (vault || locked || state.settings.lockOfferDismissed || !FE.crypto.available()) return '';
+    if (['letter', 'history'].indexOf(v) < 0) return '';
+    const p = state.person;
+    if (!(p.name || p.street || p.zipCity || state.encounters.length)) return '';
+    return '<aside class="panel accent lock-offer" role="status"><p><strong>' + esc(t('lockoffer.title')) + '</strong> ' + esc(t('lockoffer.text')) + '</p>' +
+      '<div class="actions"><button class="btn primary small" data-action="go" data-view="data">' + esc(t('lockoffer.yes')) + '</button>' +
+      '<button class="btn ghost small" data-action="lockOfferNo">' + esc(t('lockoffer.no')) + '</button></div></aside>';
   }
 
   /* Web version only: browser storage can be wiped (history cleared, private window,
@@ -586,41 +660,6 @@
       esc(last ? t('backup.nagOld', { date: fmt(last) }) : t('backup.nag')) + '</p><div class="actions">' +
       '<button class="btn primary small" data-action="export">' + esc(t('backup.now')) + '</button>' +
       '<button class="btn ghost small" data-action="snoozeBackup">' + esc(t('backup.later')) + '</button></div></aside>';
-  }
-
-  /* Web version only: on the first visit, explain in plain words where the data lives. */
-  function showWebInfo() {
-    let d = document.getElementById('webinfo');
-    if (d) d.remove();
-    d = document.createElement('dialog');
-    d.id = 'webinfo';
-    d.className = 'webinfo';
-    d.setAttribute('aria-labelledby', 'webinfo-title');
-    d.innerHTML = '<h2 id="webinfo-title">' + esc(t('webinfo.title')) + '</h2><ul class="tips">' +
-      ['webinfo.where', 'webinfo.backup', 'webinfo.shared'].map((k) => '<li>' + esc(t(k)) + '</li>').join('') + '</ul>' +
-      '<div class="actions"><button class="btn primary" data-action="webInfoClose">' + esc(t('webinfo.ok')) + '</button>' +
-      '<button class="btn" data-action="webInfoClose" data-view="data">' + esc(t('webinfo.lock')) + '</button>' +
-      '<button class="btn ghost" data-action="webInfoClose" data-view="help">' + esc(t('webinfo.help')) + '</button></div>';
-    d.addEventListener('close', dismissWebInfo);   // Esc key; the buttons call dismissWebInfo directly
-    document.body.appendChild(d);
-    if (typeof d.showModal === 'function') d.showModal(); else d.setAttribute('open', '');
-  }
-
-  // Remember the note was seen and remove it. Done here, not only in the dialog's
-  // "close" event: that event did not reliably arrive in every browser.
-  function dismissWebInfo() {
-    try { localStorage.setItem(WEBINFO_KEY, '1'); } catch (e) { /* ignore */ }
-    const d = document.getElementById('webinfo');
-    if (!d) return;
-    if (typeof d.close === 'function' && d.open) d.close();
-    d.remove();
-  }
-
-  function maybeShowWebInfo() {
-    if (isNative() || locked) return;
-    let seen = false;
-    try { seen = !!localStorage.getItem(WEBINFO_KEY); } catch (e) { /* ignore */ }
-    if (!seen) showWebInfo();
   }
 
   views.more = function () {
@@ -670,7 +709,8 @@
       if (v === 'help') help.setAttribute('aria-current', 'page'); else help.removeAttribute('aria-current');
       help.innerHTML = '<span aria-hidden="true">?</span><span class="helplink-text">' + esc(t('nav.help')) + '</span>';
     }
-    document.getElementById('view').innerHTML = backupNag(v) + views[v]();
+    const offer = lockOffer(v);
+    document.getElementById('view').innerHTML = (offer || backupNag(v)) + views[v]();
     if (v === 'letter') mountSignature();
     if (v === 'lock') { const p = document.getElementById('lock-pass'); if (p) p.focus(); }
   }
@@ -823,11 +863,21 @@
       if (ok) { state.settings.lastBackup = FE.today(); persist(); render(); }
     },
     snoozeBackup() { backupSnoozed = true; render(); },
-    showWebInfo() { showWebInfo(); },
-    webInfoClose(el) {
-      dismissWebInfo();
-      const to = el.getAttribute('data-view');
-      if (to) location.hash = to;
+    hideWhy(el) {
+      const list = state.settings.hiddenWhy || (state.settings.hiddenWhy = []);
+      const v = el.getAttribute('data-view');
+      if (list.indexOf(v) < 0) list.push(v);
+      persist();
+      const box = el.closest('.why');
+      if (box) box.remove();
+    },
+    showWhy() { state.settings.hiddenWhy = []; persist(); toast(t('help.showWhy')); render(); },
+    lockOfferNo() { state.settings.lockOfferDismissed = true; persist(); render(); },
+    tip(el) {
+      const p = document.getElementById(el.getAttribute('aria-controls'));
+      if (!p) return;
+      p.hidden = !p.hidden;
+      el.setAttribute('aria-expanded', String(!p.hidden));
     },
     lockNow() { lockNow(); },
     async disableLock() {
@@ -936,7 +986,6 @@
   document.addEventListener('focusout', () => document.body.classList.remove('typing'));
   window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
   render();
-  maybeShowWebInfo();
 
   // Offline cache when served over http(s). Opening index.html directly works too.
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol) && !isNative()) {

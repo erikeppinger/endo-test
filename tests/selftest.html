@@ -70,12 +70,7 @@
 
   // Back up real data, start clean.
   let backup = null;
-  const INFO = 'fightendo.webinfo';
-  let infoSeen = null;
-  try {
-    backup = localStorage.getItem(KEY); localStorage.removeItem(KEY);
-    infoSeen = localStorage.getItem(INFO); localStorage.removeItem(INFO);
-  } catch (e) { /* storage blocked */ }
+  try { backup = localStorage.getItem(KEY); localStorage.removeItem(KEY); } catch (e) { /* storage blocked */ }
 
   if (!frame.contentDocument || frame.contentDocument.readyState !== 'complete') await waitLoad();
   frame.contentWindow.location.reload(); await waitLoad(); hookErrors(); await sleep(200);
@@ -88,18 +83,23 @@
     return navigator.language + ' → ' + got;
   });
 
-  await test('web version: first-visit note explains local storage, once', async () => {
-    const d = D().getElementById('webinfo');
-    assert(d && d.open, 'first-visit note not shown');
-    assert(d.querySelectorAll('li').length === 3 && /Browser/.test(d.textContent), 'note content incomplete');
-    d.querySelector('[data-view="help"]').click(); await sleep(150);
-    assert(!D().getElementById('webinfo'), 'note did not close');
-    assert(/help/.test(W().location.hash), '"More in Help" should open the help page');
-    assert(/GitHub/.test(D().getElementById('view').textContent), 'help page does not explain hosting');
-    assert(D().getElementById('helplink').getAttribute('aria-current') === 'page', 'header help link not marked');
-    const p = waitLoad(); W().location.reload(); await p; hookErrors(); await sleep(200);
-    assert(!D().getElementById('webinfo'), 'note shown again after it was dismissed');
-    await go('start');
+  await test('start page explains purpose and steps, no pop-up on first visit', async () => {
+    assert(!D().querySelector('dialog'), 'no dialog should open on the first visit');
+    const view = D().getElementById('view');
+    assert(/Warum es FightEndo gibt/.test(view.textContent), 'missing "why FightEndo exists"');
+    assert(view.querySelectorAll('.steps li').length === 4, 'expected 4 steps');
+    assert($('.privacy-line a[href="#help"]'), 'privacy line with link to help missing');
+    assert(!/Passwort|Passphrase/.test(view.textContent), 'the start page should not talk about passwords yet');
+  });
+
+  await test('example letter: fictional person, user data untouched', async () => {
+    await click('[data-view="example"]');
+    assert(/example/.test(W().location.hash), 'example page not opened');
+    const text = $('.example-text') && $('.example-text').textContent;
+    assert(text && /Sehr geehrte Damen und Herren/.test(text) && /Quellen/.test(text), 'example letter incomplete');
+    assert(/Maria Muster/.test(D().getElementById('view').textContent), 'example person missing');
+    assert(!localStorage.getItem(KEY) || !/Maria Muster/.test(localStorage.getItem(KEY)), 'example data leaked into the user data');
+    await click('[data-action="go"][data-view="start"]');
   });
 
   await test('app boots and renders navigation', () => {
@@ -168,6 +168,28 @@
     assert(/max\. 8/.test(txt) && /1 Ausfalltage/.test(txt), 'unexpected stats: ' + txt);
   });
 
+  await test('explanations: step indicator, "why" box can be hidden and restored, ⓘ tips', async () => {
+    await go('symptoms');
+    assert(/Schritt 1 von 4/.test($('.progress').textContent), 'step indicator missing on symptoms');
+    await go('history');
+    assert(/Schritt 3 von 4/.test($('.progress').textContent), 'step indicator wrong on history');
+    await go('symptoms');
+    assert($('.why[data-why="symptoms"]'), 'why box missing');
+    await click('.why [data-action="hideWhy"]');
+    assert(!$('.why'), 'why box not hidden');
+    await go('diary'); await go('symptoms');
+    assert(!$('.why[data-why="symptoms"]'), 'hidden why box came back');
+    const tipBtn = $('[data-action="tip"]');
+    const tip = D().getElementById(tipBtn.getAttribute('aria-controls'));
+    assert(tip.hidden, 'tip should start closed');
+    tipBtn.click(); await sleep(50);
+    assert(!tip.hidden && tipBtn.getAttribute('aria-expanded') === 'true', 'tip did not open');
+    await go('help');
+    await click('[data-action="showWhy"]');
+    await go('symptoms');
+    assert($('.why[data-why="symptoms"]'), 'why box not restored from help');
+  });
+
   await test('appeal deadline: 4-day notice + 1 month, weekend shifts to Monday', async () => {
     await go('history');
     await click('[data-action="add"][data-list="encounters"]');
@@ -221,6 +243,16 @@
     assert(text.includes('NOTIZ-XYZ'), 'symptom notes missing');
     const e = text.indexOf('MEINE-ERGAENZUNG'), g = text.lastIndexOf('Mit freundlichen Grüßen');
     assert(e > 0 && e < g, 'own addition missing or not before the closing');
+  });
+
+  await test('password offer appears with personal data, "No thanks" hides it for good', async () => {
+    await go('history'); await go('letter');
+    assert($('.lock-offer'), 'no password offer although a name is entered');
+    await click('[data-action="lockOfferNo"]');
+    assert(!$('.lock-offer'), '"No thanks" did not hide the offer');
+    await go('history');
+    assert(!$('.lock-offer'), 'offer came back after "No thanks"');
+    await go('letter');   // the next tests continue on the letter page
   });
 
   await test('manual edit pauses live updates, rebuild restores them', async () => {
@@ -435,10 +467,7 @@
   await test('no JavaScript errors', () => { assert(!errors.length, errors.join(' | ')); });
 
   // Restore the user's own data.
-  try {
-    if (backup) localStorage.setItem(KEY, backup); else localStorage.removeItem(KEY);
-    if (infoSeen) localStorage.setItem(INFO, infoSeen); else localStorage.removeItem(INFO);
-  } catch (e) { /* ignore */ }
+  try { if (backup) localStorage.setItem(KEY, backup); else localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
 
   const failed = results.filter((r) => !r.ok).length;
   const s = document.getElementById('summary');

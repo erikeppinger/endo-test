@@ -197,18 +197,36 @@ body.is-locked #nav { display: none; }
 .helplink[aria-current="page"] { border-color: var(--accent); font-weight: 600; }
 .helplink[hidden] { display: none; }
 
-/* first-visit note (web version) and backup reminder */
-.webinfo {
-  width: min(560px, calc(100% - 32px)); max-height: calc(100% - 32px); overflow: auto;
-  border: 0; border-radius: var(--radius); padding: 20px 22px; background: var(--surface); color: var(--ink);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .35);
+/* backup reminder and password offer */
+.backup-nag, .lock-offer { margin-top: 0; }
+.backup-nag p, .lock-offer p { margin: 0 0 8px; }
+
+/* explanations: start page, "why" boxes, step indicator, ⓘ tips, example letter */
+.hero .actions { margin: 20px 0 8px; }
+.privacy-line { color: var(--muted); font-size: 15px; margin: 8px 0 0; }
+.why {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 4px 12px; margin: 4px 0 16px;
+  padding: 12px 14px; border-left: 4px solid var(--accent); background: var(--accent-soft); border-radius: 0 12px 12px 0;
 }
-.webinfo::backdrop { background: rgba(20, 18, 29, .55); }
-.webinfo h2 { margin: 0 0 8px; }
-.webinfo .tips li { margin: 10px 0; font-size: 16px; }
-.webinfo .actions { margin-top: 16px; }
-.backup-nag { margin-top: 0; }
-.backup-nag p { margin: 0 0 8px; }
+.why p { flex: 1 1 260px; margin: 0; font-size: 15px; }
+.why .btn { flex: none; }
+.progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 10px; font-size: 14px; color: var(--muted); }
+.progress-bar { display: inline-flex; gap: 4px; }
+.progress-bar i { width: 28px; height: 6px; border-radius: 3px; background: var(--line); }
+.progress-bar i.on { background: var(--accent); }
+.tipbtn {
+  font: inherit; font-size: 15px; line-height: 1; cursor: pointer; margin-left: 6px; vertical-align: middle;
+  width: 28px; height: 28px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); color: var(--muted);
+}
+.tipbtn[aria-expanded="true"] { border-color: var(--accent); color: var(--ink); }
+.tip { margin: 6px 0 0; padding: 8px 10px; font-size: 14px; color: var(--ink); background: var(--accent-soft); border-radius: 8px; }
+/* label and ⓘ side by side, even when the label wraps; input and explanation below, full width */
+.field:has(> .tipbtn) { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 6px; align-items: end; }
+.field:has(> .tipbtn) > :not(label):not(.tipbtn) { grid-column: 1 / -1; }
+.tipwrap { display: flex; flex-wrap: wrap; align-items: flex-start; column-gap: 6px; }
+.tipwrap > .check { flex: 1 1 0; min-width: 0; }
+.tipwrap > .tip { flex-basis: 100%; }
+.example-text { white-space: pre-wrap; overflow-wrap: anywhere; font: 15px/1.55 Arial, Helvetica, sans-serif; margin: 0; background: #fff; color: #1d1a2b; border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; }
 
 /* bottom navigation (phones) */
 .bottomnav { display: none; }

@@ -75,6 +75,22 @@ for (const file of countries) {
     if (!(d instanceof sandbox.Date || d instanceof Date) || isNaN(d)) err(file, 'objectionDeadline must return a Date');
   }
 
+  // Optional example letter (fictional person) shown from the start page.
+  if (j.example) {
+    const exLetter = (j.letters || []).find((l) => l.id === j.example.letter);
+    if (!exLetter) err(file, 'example.letter must name one of the letters');
+    else if (!j.example.state || typeof j.example.state !== 'object') err(file, 'example.state is missing');
+    else {
+      try {
+        const st = FE.merge(FE.emptyState(), JSON.parse(JSON.stringify(j.example.state)));
+        st.letter.options[exLetter.id] = FE.optionDefaults(st, j, exLetter);
+        const res = FE.buildLetter(st, j, exLetter);
+        const text = typeof res === 'string' ? res : res.subject + '\n' + res.body;
+        if (/undefined|NaN|\[object /.test(text)) err(file, 'example letter contains undefined/NaN');
+      } catch (e) { err(file, 'example letter crashed – ' + e.message); }
+    }
+  }
+
   const ids = new Set();
   for (const letter of j.letters || []) {
     const w = file + ' letter "' + letter.id + '"';
